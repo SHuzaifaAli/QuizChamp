@@ -1,0 +1,304 @@
+Below is a single copy-paste developer prompt / specification you can give to an AI code generator, contractor, or use as a high-level project brief. It contains concrete package names, API example, architecture, features, UX notes, data models, and non-functional requirements.
+
+Prompt / Project Spec — “QuizChamp” (Flutter quiz app — BLoC + DI, target 13+)
+
+Goal: Build a Flutter quiz app for users 13+ with Google-only auth, single-source-of-truth BLoC architecture, dependency injection, quizzes from a free API, animations (Lottie + custom), profile & progress tracking, friends/leagues/leaderboards, points & hearts (lives), push notifications + wakelock during quizzes, AdMob & in-app purchases for hearts, subscription tier handling, sounds, and polished UX.
+
+High-level requirements
+
+Framework: Flutter (mobile: Android & iOS)
+
+State management: BLoC (single source of truth; use bloc + flutter_bloc). 
+Dart packages
+
+Dependency injection: get_it (+ optional codegen). 
+Dart packages
+
+Auth: Google Sign-In (google_sign_in plugin). Only Google login supported. 
+Dart packages
+
+Free Questions API: Open Trivia Database (OpenTDB) — free JSON API, no API key required. Example request included below. 
+opentdb.com
+
+Ads: Google AdMob via google_mobile_ads. 
+Dart packages
+
+In-App Purchases: use in_app_purchase (native store purchases/subscriptions).
+
+Animations: Lottie for animations; smooth custom Flutter animations for question transitions.
+
+Sound: audioplayers or just_audio for SFX and short music loops.
+
+Wake Lock: use wakelock plugin to keep screen awake during active quizzes.
+
+Notifications: Firebase Cloud Messaging (or another push provider) for reminders/league invites.
+
+Target audience: 13+ — ensure no collection of sensitive child data; minimal profile info (display name, avatar optional), parental consent guidance in privacy policy.
+
+Accessibility: text scaling, clear contrast, touch target sizes.
+
+Example OpenTDB usage (free API)
+
+Base: https://opentdb.com/api.php
+
+Example: Get 10 mixed questions (multiple choice):
+https://opentdb.com/api.php?amount=10&type=multiple
+
+Use category & difficulty query params as needed. (API returns question, correct_answer, incorrect_answers.) 
+opentdb.com
+
+Core features (detailed)
+
+Auth
+
+Google-only sign in.
+
+Minimal account: uid, displayName, email, photoUrl (optional).
+
+Local cache of user session + secure token storage.
+
+Quiz Engine
+
+Fetch quizzes from OpenTDB with local caching.
+
+Question timer, per-question animations, feedback animations (Lottie).
+
+Lifelines/hearts: each quiz attempt uses hearts; when hearts depleted, user can buy hearts (IAP) or wait to regenerate.
+
+Sounds for correct/wrong/timeout + optional mute toggle.
+
+Profile & Progress
+
+Track stats: total quizzes, accuracy, streaks, levels, XP/points.
+
+Visual progress graph & badges.
+
+Sync with backend (cloud DB) for cross-device progress.
+
+Friends, Leagues & Leaderboards
+
+Friends: invite by Google contacts link (or share link). Friend list, friend vs friend challenge.
+
+Leagues: seasonal leagues (e.g., weekly), match players into leagues by skill/points.
+
+Leaderboards: global, friends, league; daily/weekly/monthly.
+
+Points awarding rules (e.g., +100 for correct, bonus for streaks).
+
+Currency & Monetization
+
+Points: earned by correct answers; visible in profile.
+
+Hearts/Lives: consumed per attempt or per life in rounds. Buy via IAP (consumable).
+
+Subscription: monthly subscription removes ads, grants daily hearts, exclusive leagues.
+
+In-app purchase handling: use native stores (Google Play / App Store); handle receipts and subscription status server-side where possible.
+
+Ads
+
+AdMob banners on non-paying screens, rewarded ads to earn hearts, interstitial after rounds.
+
+Respect subscription status to disable ads.
+
+Notifications & WakeLock
+
+Push notifications for friend invites, league results, reminders.
+
+WakeLock while an active timed quiz is running (so screen stays on during question answering).
+
+Respect power/battery settings — allow user to disable wake lock.
+
+UI / Animation
+
+Use Lottie animations for onboarding, correct/wrong animations, level up.
+
+Smooth card flip / slide animations while changing questions.
+
+Sounds for UX actions; global mute toggle.
+
+Age 13+ & Privacy
+
+Consent/Privacy: state app for 13+ only; do not collect birthdate or other child-sensitive info.
+
+Privacy policy must describe data collected (analytics, push tokens, Google id) and use.
+
+Architecture & technical design (strict)
+
+Layers: Presentation (BLoC), Domain (use cases), Data (repositories, remote/local data sources).
+
+Single Source of Truth: Repositories return canonical data sources (local cache first, then remote), and BLoCs subscribe to repository streams. Use Stream/Cubit for state updates.
+
+DI: get_it to register singletons: ApiClient, Repositories, BLoCs, LocalStorage, NotificationService.
+
+Networking: dio (or http) for flexible requests, interceptors for logging & retry.
+
+Local storage: hive or sembast for caching questions, user progress, offline leaderboards.
+
+Backend (optional but recommended):
+
+Minimal backend to store leaderboards, subscriptions, purchases receipts, friend relationships, league logic and to verify IAP receipts. Use Firebase (Firestore + Cloud Functions) or a simple Node/Express API with a managed DB.
+
+Push: Firebase Cloud Messaging + token stored in backend for sending invites & reminders.
+
+Packages (recommended)
+
+(Use latest versions on pub.dev in code)
+
+bloc, flutter_bloc (BLoC pattern). 
+Dart packages
+
+get_it (+ get_it_injector_gen optional). 
+Dart packages
+
+google_sign_in (Google auth). 
+Dart packages
+
+google_mobile_ads (AdMob). 
+Dart packages
+
+in_app_purchase (IAP/subscriptions). 
+Dart packages
+
+lottie (Lottie animations). 
+Dart packages
+
+wakelock / wakelock_plus (keep screen awake). 
+Dart packages
+
+audioplayers / just_audio (SFX).
+
+dio (HTTP client) + retrofit (optional).
+
+hive (local cache) or sqflite.
+
+firebase_messaging, cloud_firestore if using Firebase backend.
+
+Data models (examples)
+
+User
+
+id (string), displayName, email, photoUrl, points (int), subscriptionStatus, hearts (int), createdAt
+
+Question
+
+id, category, type (multiple/boolean), difficulty, questionText, answers[], correctAnswer
+
+QuizAttempt
+
+id, userId, questions[], correctCount, startAt, endAt, pointsEarned
+
+League
+
+id, name, season, memberIds[], leaderboard[]
+
+BLoC / Cubit structure (suggested)
+
+AuthBloc — sign in/out, session state
+
+QuizBloc — current quiz state, timer, question index, scoring
+
+ProfileBloc — user profile + stats
+
+FriendsBloc — friends list, invites
+
+LeaguesBloc — current leagues, standings
+
+LeaderboardBloc — fetch & refresh leaderboards
+
+PurchaseBloc — handles IAP result flow & subscription state
+
+Each bloc reads/writes to corresponding repository (e.g., QuizRepository, UserRepository) registered in get_it.
+
+Offline / Caching behavior
+
+Cache recent question sets for quick retry & offline quizzes.
+
+Persist progress and pending purchases (to reconcile with store on next network).
+
+Leaderboards can use eventual consistency; show cached view while refreshing.
+
+IAP & Subscription handling
+
+Implement consumable purchases for hearts via in_app_purchase.
+
+Implement non-consumable or subscription product for ad removal + monthly hearts.
+
+Validate receipts server-side where possible, and store subscription state server-side.
+
+Handle edge cases: restored purchases, network failures, user cancels.
+
+Testing & QA
+
+Unit tests for BLoCs + repositories.
+
+Integration tests for flows (login, purchase, quiz round).
+
+Test ad flows + rewarded video earning hearts.
+
+Test subscription lifecycle: purchase, expiration, restore.
+
+Analytics & crash reporting
+
+Use Firebase Analytics and Crashlytics (or equivalent).
+
+Track events: quiz_started, quiz_completed, friend_invite_sent, purchase_made, ad_reward_claimed.
+
+Security & compliance
+
+Do not store OAuth refresh tokens insecurely.
+
+If collecting analytics/push tokens, disclose in privacy policy.
+
+Age 13+ only: include UI text “For users 13+” and request parental consent in privacy policy if app expands to younger audiences.
+
+UX / Onboarding suggestions
+
+Short onboarding that highlights hearts, subscription benefits, and friend features.
+
+First-run tutorial showing quiz mechanics and rewarded ads to get extra hearts.
+
+Lottie success animation on level up.
+
+Deliverables (minimal MVP)
+
+Auth with Google sign in.
+
+Quiz screen with timer + Lottie animations + sounds; questions from OpenTDB.
+
+Profile + progress persistence.
+
+Hearts system with consumable IAP purchase and rewarded ads.
+
+Leaderboard (global & friends) with basic backend or Firebase.
+
+Push notifications, wake lock during active question.
+
+AdMob integration + subscription to remove ads.
+
+CI/CD setup for Android/iOS builds and store submission checklist.
+
+Example API call and mapping (concrete)
+
+Request: https://opentdb.com/api.php?amount=10&type=multiple
+
+Map response to Question model; shuffle correct + incorrect answers into answers[].
+
+Example BLoC flow: StartQuizEvent -> repository fetch questions -> emit QuizLoadedState(questions) -> AnswerSelectedEvent -> evaluate + emit QuestionAnsweredState.
+
+(Free Trivia source: Open Trivia Database — fully free & CC BY-SA). 
+opentdb.com
+
+Notes / Risks & next steps
+
+LinkedIn post content couldn’t be fetched because LinkedIn requires login; use the spec above as full recreation of a quiz app with similar capabilities. If you want me to match exact visuals from that post, upload screenshots or give the copy/paste content and I’ll tailor UI and copy to match.
+
+For production subscription receipt validation and secure leaderboards, a small backend (Firebase or simple server) is strongly recommended.
+
+If you want, I can now:
+
+(A) generate a pubspec.yaml + starter folder structure following this spec, or
+
+(B) write one or two example BLoC classes (e.g., AuthBloc, QuizBloc) + repository interfaces, or
+
+(C) produce a feature backlog + sprint plan (MVP → v1 → v2) with estimated tasks.

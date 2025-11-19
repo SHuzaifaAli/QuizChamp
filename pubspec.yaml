@@ -1,0 +1,62 @@
+name: quiz_champ
+description: A new Flutter project.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_bloc: ^8.1.3
+  bloc: ^8.1.2
+  dartz: ^0.10.1
+
+  # Dependency Injection
+  get_it: ^7.6.4
+
+  # Networking
+  dio: ^5.3.3
+
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Auth
+  google_sign_in: ^6.1.5
+
+  # Utility
+  equatable: ^2.0.5
+  
+  # UI/Animations
+  lottie: ^2.7.0
+
+  # Native Features
+  wakelock_plus: ^1.1.1
+  
+  # Firebase (for backend/notifications/analytics)
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.10
+  cloud_firestore: ^4.13.3
+  firebase_analytics: ^10.7.3
+
+  # Monetization (placeholders for native setup)
+  google_mobile_ads: ^6.0.0
+  in_app_purchase: ^3.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.6
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/lottie/
+    - assets/audio/
+
