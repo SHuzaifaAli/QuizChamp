@@ -18,4 +18,8 @@ abstract class QuizRepository {
   
   Future<Either<Failure, void>> completeQuizSession(String sessionId);
   Future<Either<Failure, QuizSession?>> getCurrentSession();
+  Future<Either<Failure, void>> abandonQuizSession(String sessionId);
+  Map<String, dynamic> getSessionStats(QuizSession session);
+  void clearCurrentSession();
+  bool hasActiveSession();
 }

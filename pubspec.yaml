@@ -30,6 +30,8 @@ dependencies:
 
   # Utility
   equatable: ^2.0.5
+  html: ^0.15.4.15.1
+  uuid: ^4.2.2
   
   # UI/Animations
   lottie: ^2.7.0

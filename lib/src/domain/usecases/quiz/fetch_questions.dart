@@ -16,7 +16,6 @@ class FetchQuestions implements UseCase<List<QuestionEntity>, FetchQuestionsPara
       amount: params.amount,
       category: params.category,
       difficulty: params.difficulty,
-      type: params.type,
     );
   }
 }
@@ -25,15 +24,13 @@ class FetchQuestionsParams extends Equatable {
   final int amount;
   final String? category;
   final String? difficulty;
-  final String? type;
 
   const FetchQuestionsParams({
     this.amount = 10,
     this.category,
     this.difficulty,
-    this.type,
   });
 
   @override
-  List<Object?> get props => [amount, category, difficulty, type];
+  List<Object?> get props => [amount, category, difficulty];
 }
