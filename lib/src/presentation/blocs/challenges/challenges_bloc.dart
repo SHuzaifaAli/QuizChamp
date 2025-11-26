@@ -1,8 +1,8 @@
 import 'package:bloc/bloc.dart';
-import 'package:stream_transform/stream_transform.dart';
 import 'package:dartz/dartz.dart';
+import '../../../core/error/failures.dart';
 import '../../../domain/entities/challenge_entity.dart';
-import '../../../domain/entities/question_entity.dart';
+import '../../../domain/repositories/challenges_repository.dart';
 import '../../../domain/usecases/challenges/create_challenge_usecase.dart';
 import '../../../domain/usecases/challenges/get_challenge_usecase.dart';
 import '../../../domain/usecases/challenges/get_user_challenges_usecase.dart';
@@ -10,15 +10,8 @@ import '../../../domain/usecases/challenges/accept_challenge_usecase.dart';
 import '../../../domain/usecases/challenges/decline_challenge_usecase.dart';
 import '../../../domain/usecases/challenges/complete_challenge_usecase.dart';
 import '../../../domain/usecases/challenges/get_pending_challenges_usecase.dart';
-import '../../../errors/failures.dart';
 import 'challenges_event.dart';
 import 'challenges_state.dart';
-
-const _challengeDebounceDuration = Duration(milliseconds: 300);
-
-EventTransformer<T> debounce<T>(Duration duration) {
-  return (events, mapper) => events.debounce(duration).switchMap(mapper);
-}
 
 class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
   final CreateChallengeUseCase _createChallengeUseCase;
@@ -52,7 +45,7 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     on<CompleteChallenge>(_onCompleteChallenge);
     on<CancelChallenge>(_onCancelChallenge);
     on<LoadPendingChallenges>(_onLoadPendingChallenges);
-    on<RefreshChallenges>(_onRefreshChallenges, transformer: debounce(_challengeDebounceDuration));
+    on<RefreshChallenges>(_onRefreshChallenges);
   }
 
   Future<void> _onLoadUserChallenges(
@@ -72,11 +65,11 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
         );
         
         final activeChallenges = challenges.where((c) =>
-          c.status == ChallengeStatus.accepted || c.status == ChallengeStatus.inProgress
+          c?.status == ChallengeStatus.accepted || c?.status == ChallengeStatus.active
         ).toList();
         
         final completedChallenges = challenges.where((c) =>
-          c.status == ChallengeStatus.completed
+          c?.status == ChallengeStatus.completed
         ).toList();
 
         emit(ChallengesLoaded(
@@ -95,26 +88,22 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     CreateChallenge event,
     Emitter<ChallengesState> emit,
   ) async {
-    emit(const ChallengesOperationInProgress('Creating challenge...'));
+    emit(const ChallengesLoading());
     
     try {
       final params = CreateChallengeParams(
         challengerId: event.challengerId,
         challengedId: event.challengedId,
-        challengerName: event.challengerName,
-        challengedName: event.challengedName,
-        challengerPhotoUrl: event.challengerPhotoUrl,
-        challengedPhotoUrl: event.challengedPhotoUrl,
         category: event.category,
         difficulty: event.difficulty,
         questions: event.questions,
-        expiresAt: event.expiresAt,
+        message: event.message,
       );
 
       final result = await _createChallengeUseCase(params);
       
       result.fold(
-        (failure) => emit(ChallengesError('Failed to create challenge: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to create challenge: ${(failure as ServerFailure).message}')),
         (success) => emit(const ChallengeOperationSuccess('Challenge created successfully!')),
       );
     } catch (e) {
@@ -126,13 +115,13 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     AcceptChallenge event,
     Emitter<ChallengesState> emit,
   ) async {
-    emit(const ChallengesOperationInProgress('Accepting challenge...'));
+    emit(const ChallengesLoading());
     
     try {
-      final result = await _acceptChallengeUseCase(event.challengeId);
+      final result = await _acceptChallengeUseCase(event.challengeId, event.userId);
       
       result.fold(
-        (failure) => emit(ChallengesError('Failed to accept challenge: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to accept challenge: ${(failure as ServerFailure).message}')),
         (success) => emit(const ChallengeOperationSuccess('Challenge accepted!')),
       );
     } catch (e) {
@@ -144,13 +133,13 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     DeclineChallenge event,
     Emitter<ChallengesState> emit,
   ) async {
-    emit(const ChallengesOperationInProgress('Declining challenge...'));
+    emit(const ChallengesLoading());
     
     try {
-      final result = await _declineChallengeUseCase(event.challengeId);
+      final result = await _declineChallengeUseCase(event.challengeId, event.userId);
       
       result.fold(
-        (failure) => emit(ChallengesError('Failed to decline challenge: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to decline challenge: ${(failure as ServerFailure).message}')),
         (success) => emit(const ChallengeOperationSuccess('Challenge declined')),
       );
     } catch (e) {
@@ -162,19 +151,24 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     CompleteChallenge event,
     Emitter<ChallengesState> emit,
   ) async {
-    emit(const ChallengesOperationInProgress('Completing challenge...'));
+    emit(const ChallengesLoading());
     
     try {
-      final params = CompleteChallengeParams(
-        challengeId: event.challengeId,
-        challengerScore: event.challengerScore,
-        challengedScore: event.challengedScore,
+      final challengeResult = ChallengeResult(
+        userId: event.challengeId, // This should be the actual user ID
+        score: event.challengerScore,
+        correctAnswers: event.challengerScore, // Assuming 1 point per correct answer
+        totalQuestions: 10, // This should come from the challenge
+        accuracyPercentage: (event.challengerScore / 10) * 100,
+        timeToComplete: Duration.zero, // This should be tracked
+        completedAt: DateTime.now(),
+        answers: [], // This should contain actual answers
       );
 
-      final result = await _completeChallengeUseCase(params);
+      final result = await _completeChallengeUseCase(event.challengeId, challengeResult);
       
       result.fold(
-        (failure) => emit(ChallengesError('Failed to complete challenge: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to complete challenge: ${(failure as ServerFailure).message}')),
         (success) => emit(const ChallengeOperationSuccess('Challenge completed!')),
       );
     } catch (e) {
@@ -186,13 +180,13 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
     CancelChallenge event,
     Emitter<ChallengesState> emit,
   ) async {
-    emit(const ChallengesOperationInProgress('Cancelling challenge...'));
+    emit(const ChallengesLoading());
     
     try {
       final challengeResult = await _getChallengeUseCase(event.challengeId);
       
       challengeResult.fold(
-        (failure) => emit(ChallengesError('Failed to find challenge: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to find challenge: ${(failure as ServerFailure).message}')),
         (challenge) async {
           if (challenge == null) {
             emit(const ChallengesError('Challenge not found'));
@@ -200,9 +194,9 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
           }
           
           if (challenge.status == ChallengeStatus.pending) {
-            final declineResult = await _declineChallengeUseCase(event.challengeId);
+            final declineResult = await _declineChallengeUseCase(event.challengeId, challenge.challengerId);
             declineResult.fold(
-              (failure) => emit(ChallengesError('Failed to cancel challenge: ${failure.message}')),
+              (failure) => emit(ChallengesError('Failed to cancel challenge: ${(failure as ServerFailure).message}')),
               (success) => emit(const ChallengeOperationSuccess('Challenge cancelled')),
             );
           } else {
@@ -223,7 +217,7 @@ class ChallengesBloc extends Bloc<ChallengesEvent, ChallengesState> {
       final result = await _getPendingChallengesUseCase(event.userId);
       
       result.fold(
-        (failure) => emit(ChallengesError('Failed to load pending challenges: ${failure.message}')),
+        (failure) => emit(ChallengesError('Failed to load pending challenges: ${(failure as ServerFailure).message}')),
         (pendingChallenges) {
           if (state is ChallengesLoaded) {
             final currentState = state as ChallengesLoaded;

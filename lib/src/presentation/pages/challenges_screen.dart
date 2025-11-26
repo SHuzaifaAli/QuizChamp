@@ -126,11 +126,11 @@ class PendingChallengesTab extends StatelessWidget {
   }
 
   void _acceptChallenge(BuildContext context, String challengeId) {
-    context.read<ChallengesBloc>().add(AcceptChallenge(challengeId));
+    context.read<ChallengesBloc>().add(AcceptChallenge(challengeId, 'current_user_id'));
   }
 
   void _declineChallenge(BuildContext context, String challengeId) {
-    context.read<ChallengesBloc>().add(DeclineChallenge(challengeId));
+    context.read<ChallengesBloc>().add(DeclineChallenge(challengeId, 'current_user_id'));
   }
 }
 

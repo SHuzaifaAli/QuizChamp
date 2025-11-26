@@ -1,23 +1,19 @@
 import 'package:dartz/dartz.dart';
-import '../../errors/failures.dart';
-import '../../repositories/social_activity_repository.dart';
-import '../entities/social_activity_entity.dart';
+import '../../../core/error/failures.dart';
+import '../../../domain/repositories/social_activity_repository.dart';
+import '../../../domain/entities/social_activity_entity.dart';
 
 class AddReactionToActivityUseCase {
   final SocialActivityRepository _repository;
 
   AddReactionToActivityUseCase(this._repository);
 
-  Future<Either<Failure, void>> call(AddReactionParams params) async {
+  Future<Either<Failure, void>> call(String activityId, String userId, ReactionType reactionType) async {
     try {
-      await _repository.addReactionToActivity(
-        params.activityId,
-        params.userId,
-        params.reactionType,
-      );
+      await _repository.reactToActivity(activityId, userId, reactionType);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

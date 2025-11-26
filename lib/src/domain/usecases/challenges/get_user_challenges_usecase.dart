@@ -1,5 +1,7 @@
 import '../../repositories/challenges_repository.dart';
-import '../entities/challenge_entity.dart';
+import '../../../domain/entities/challenge_entity.dart';
+import '../../../core/error/failures.dart';
+import 'package:dartz/dartz.dart';
 
 class GetUserChallengesUseCase {
   final ChallengesRepository _repository;
@@ -7,6 +9,6 @@ class GetUserChallengesUseCase {
   GetUserChallengesUseCase(this._repository);
 
   Stream<List<Challenge>> call(String userId) {
-    return _repository.getUserChallenges(userId);
+    return _repository.getChallengesStream(userId);
   }
 }

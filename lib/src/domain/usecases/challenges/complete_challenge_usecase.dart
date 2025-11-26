@@ -1,22 +1,19 @@
 import 'package:dartz/dartz.dart';
-import '../../errors/failures.dart';
-import '../../repositories/challenges_repository.dart';
+import '../../../core/error/failures.dart';
+import '../../../domain/repositories/challenges_repository.dart';
+import '../../../domain/entities/challenge_entity.dart';
 
 class CompleteChallengeUseCase {
   final ChallengesRepository _repository;
 
   CompleteChallengeUseCase(this._repository);
 
-  Future<Either<Failure, void>> call(CompleteChallengeParams params) async {
+  Future<Either<Failure, void>> call(String challengeId, ChallengeResult result) async {
     try {
-      await _repository.completeChallenge(
-        challengeId: params.challengeId,
-        challengerScore: params.challengerScore,
-        challengedScore: params.challengedScore,
-      );
+      await _repository.submitChallengeResult(challengeId, result);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

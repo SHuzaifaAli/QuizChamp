@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import '../../errors/failures.dart';
-import '../../repositories/challenges_repository.dart';
-import '../entities/challenge_entity.dart';
+import '../../../core/error/failures.dart';
+import '../../../domain/repositories/challenges_repository.dart';
+import '../../../domain/entities/challenge_entity.dart';
 
 class GetPendingChallengesUseCase {
   final ChallengesRepository _repository;
@@ -10,10 +10,10 @@ class GetPendingChallengesUseCase {
 
   Future<Either<Failure, List<Challenge>>> call(String userId) async {
     try {
-      final challenges = await _repository.getPendingChallenges(userId);
-      return Right(challenges);
+      final challenges = await _repository.getChallengeHistory(userId);
+      return challenges;
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

@@ -122,7 +122,12 @@ class SocialActivityRepositoryImpl implements SocialActivityRepository {
   @override
   Future<Either<Failure, void>> removeReactionFromActivity(String activityId, String reaction) async {
     try {
-      await _remoteDataSource.removeReaction(activityId, reaction);
+      // Parse the reaction string to get the ReactionType enum
+      final reactionType = ReactionType.values.firstWhere(
+        (e) => e.toString() == 'ReactionType.$reaction',
+        orElse: () => ReactionType.like,
+      );
+      await _remoteDataSource.removeReaction(activityId, reaction, reactionType);
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));

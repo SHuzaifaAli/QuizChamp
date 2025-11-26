@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import '../../../core/error/failures.dart';
 import '../../../domain/usecases/social/get_friends_activity_feed_usecase.dart';
 import '../../../domain/usecases/social/create_quiz_completed_activity_usecase.dart';
 import '../../../domain/usecases/social/add_reaction_to_activity_usecase.dart';
@@ -43,14 +44,21 @@ class SocialActivityBloc
     emit(const SocialActivityLoading());
 
     try {
-      final activityStream = _getFriendsActivityFeedUseCase(event.friendIds);
+      final activityResult =
+          await _getFriendsActivityFeedUseCase(event.friendIds.first);
 
-      await for (final activities in activityStream) {
-        emit(SocialActivityFeedLoaded(
-          activities: activities,
-          friendIds: event.friendIds,
-        ));
-      }
+      activityResult.fold(
+        (failure) => emit(SocialActivityError(
+            'Failed to load activity feed: ${(failure as ServerFailure).message}')),
+        (activityStream) async {
+          await for (final activities in activityStream) {
+            emit(SocialActivityFeedLoaded(
+              activities: activities,
+              friendIds: event.friendIds,
+            ));
+          }
+        },
+      );
     } catch (e) {
       emit(
           SocialActivityError('Failed to load activity feed: ${e.toString()}'));
@@ -64,17 +72,17 @@ class SocialActivityBloc
     emit(const SocialActivityOperationInProgress('Creating activity...'));
 
     try {
-      final params = QuizCompletedActivityParams(
-        userId: event.userId,
-        userName: event.userName,
-        userPhotoUrl: event.userPhotoUrl,
-        score: event.score,
-        totalQuestions: event.totalQuestions,
-        category: event.category,
-        timeTaken: event.timeTaken,
-      );
+      final activityData = <String, dynamic>{
+        'userId': event.userId,
+        'userName': event.userName,
+        'userPhotoUrl': event.userPhotoUrl,
+        'score': event.score,
+        'totalQuestions': event.totalQuestions,
+        'category': event.category,
+        'timeTaken': event.timeTaken,
+      };
 
-      final result = await _createQuizCompletedActivityUseCase(params);
+      final result = await _createQuizCompletedActivityUseCase(activityData);
 
       result.fold(
         (failure) =>
@@ -92,17 +100,15 @@ class SocialActivityBloc
     Emitter<SocialActivityState> emit,
   ) async {
     try {
-      final params = AddReactionParams(
-        activityId: event.activityId,
-        userId: event.userId,
-        reactionType: event.reactionType,
+      final result = await _addReactionToActivityUseCase(
+        event.activityId,
+        event.userId,
+        event.reactionType,
       );
 
-      final result = await _addReactionToActivityUseCase(params);
-
       result.fold(
-        (failure) => emit(
-            SocialActivityError('Failed to add reaction: ${failure.message}')),
+        (failure) => emit(SocialActivityError(
+            'Failed to add reaction: ${failure.toString()}')),
         (success) => emit(ReactionAdded(
           event.activityId,
           event.userId,
@@ -142,12 +148,16 @@ class SocialActivityBloc
     Emitter<SocialActivityState> emit,
   ) async {
     try {
-      final activities = await _socialActivityRepository.getRecentActivities(
+      final result = await _socialActivityRepository.getRecentActivities(
         event.friendIds,
         limit: event.limit,
       );
 
-      emit(RecentActivitiesLoaded(activities));
+      result.fold(
+        (failure) => emit(SocialActivityError(
+            'Failed to load recent activities: ${(failure as ServerFailure).message}')),
+        (activities) => emit(RecentActivitiesLoaded(activities)),
+      );
     } catch (e) {
       emit(SocialActivityError(
           'Failed to load recent activities: ${e.toString()}'));

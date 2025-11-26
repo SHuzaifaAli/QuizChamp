@@ -1,22 +1,29 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:quiz_champ/src/core/error/failures.dart';
-import 'package:quiz_champ/src/core/usecases/usecase.dart';
-import 'package:quiz_champ/src/domain/entities/question_entity.dart';
-import 'package:quiz_champ/src/domain/repositories/quiz_repository.dart';
+import '../../../core/error/failures.dart';
+import '../../../domain/repositories/question_repository.dart';
+import '../../../domain/entities/question_entity.dart';
 
-class FetchQuestions implements UseCase<List<QuestionEntity>, FetchQuestionsParams> {
-  final QuizRepository repository;
+class FetchQuestions {
+  final QuestionRepository repository;
 
   FetchQuestions(this.repository);
 
-  @override
-  Future<Either<Failure, List<QuestionEntity>>> call(FetchQuestionsParams params) async {
-    return await repository.fetchQuestions(
-      amount: params.amount,
-      category: params.category,
-      difficulty: params.difficulty,
-    );
+  Future<Either<Failure, List<Question>>> call({
+    int amount = 10,
+    String? category,
+    String? difficulty,
+  }) async {
+    try {
+      final questionsResult = await repository.fetchQuestions(
+        amount: amount,
+        category: category,
+        difficulty: difficulty,
+      );
+      return questionsResult;
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 }
 

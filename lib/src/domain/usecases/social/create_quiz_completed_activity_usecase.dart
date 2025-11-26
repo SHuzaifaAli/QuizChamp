@@ -1,26 +1,18 @@
 import 'package:dartz/dartz.dart';
 import '../../../core/error/failures.dart';
-import '../../repositories/social_activity_repository.dart';
+import '../../../domain/repositories/social_activity_repository.dart';
 
 class CreateQuizCompletedActivityUseCase {
   final SocialActivityRepository _repository;
 
   CreateQuizCompletedActivityUseCase(this._repository);
 
-  Future<Either<Failure, void>> call(QuizCompletedActivityParams params) async {
+  Future<Either<Failure, void>> call(Map<String, dynamic> activityData) async {
     try {
-      await _repository.createQuizCompletedActivity(
-        userId: params.userId,
-        userName: params.userName,
-        userPhotoUrl: params.userPhotoUrl,
-        score: params.score,
-        totalQuestions: params.totalQuestions,
-        category: params.category,
-        timeTaken: params.timeTaken,
-      );
+      await _repository.createQuizCompletedActivity(activityData);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

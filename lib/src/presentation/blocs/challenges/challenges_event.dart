@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/challenge_entity.dart';
+import '../../../domain/entities/question_entity.dart';
 
 abstract class ChallengesEvent extends Equatable {
   const ChallengesEvent();
@@ -26,8 +27,9 @@ class CreateChallenge extends ChallengesEvent {
   final String? challengedPhotoUrl;
   final String category;
   final String difficulty;
-  final List<QuestionEntity> questions;
+  final List<Question> questions;
   final DateTime? expiresAt;
+  final String? message;
 
   const CreateChallenge({
     required this.challengerId,
@@ -40,6 +42,7 @@ class CreateChallenge extends ChallengesEvent {
     required this.difficulty,
     required this.questions,
     this.expiresAt,
+    this.message,
   });
 
   @override
@@ -54,25 +57,28 @@ class CreateChallenge extends ChallengesEvent {
         difficulty,
         questions,
         expiresAt,
+        message,
       ];
 }
 
 class AcceptChallenge extends ChallengesEvent {
   final String challengeId;
+  final String userId;
 
-  const AcceptChallenge(this.challengeId);
+  const AcceptChallenge(this.challengeId, this.userId);
 
   @override
-  List<Object?> get props => [challengeId];
+  List<Object?> get props => [challengeId, userId];
 }
 
 class DeclineChallenge extends ChallengesEvent {
   final String challengeId;
+  final String userId;
 
-  const DeclineChallenge(this.challengeId);
+  const DeclineChallenge(this.challengeId, this.userId);
 
   @override
-  List<Object?> get props => [challengeId];
+  List<Object?> get props => [challengeId, userId];
 }
 
 class StartChallenge extends ChallengesEvent {

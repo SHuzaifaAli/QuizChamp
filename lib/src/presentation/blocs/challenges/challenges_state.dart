@@ -54,7 +54,7 @@ class ChallengesLoaded extends ChallengesState {
 
 class ChallengeOperationInProgress extends ChallengesState {
   final String operation;
-  const ChallengesOperationInProgress(this.operation);
+  const ChallengeOperationInProgress(this.operation);
 
   @override
   List<Object?> get props => [operation];

@@ -4,6 +4,7 @@ import 'package:quiz_champ/src/core/di/injection_container.dart';
 import 'package:quiz_champ/src/domain/entities/user_entity.dart';
 import 'package:quiz_champ/src/presentation/blocs/auth/auth_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_event.dart';
 import 'package:quiz_champ/src/presentation/pages/quiz_page.dart';
 import 'package:quiz_champ/src/presentation/pages/sign_in_page.dart';
 

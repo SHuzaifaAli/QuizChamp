@@ -63,7 +63,7 @@ class QuizPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          ...question.answers.map((answer) {
+          ...question.shuffledAnswers.map((answer) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: ElevatedButton(
@@ -72,7 +72,7 @@ class QuizPage extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                 ),
                 onPressed: () => bloc.add(AnswerSelectedEvent(
-                  answerIndex: question.answers.indexOf(answer),
+                  answerIndex: question.shuffledAnswers.indexOf(answer),
                   timeToAnswer: Duration(seconds: 1),
                 )),
                 child: Text(answer, style: const TextStyle(fontSize: 16)),

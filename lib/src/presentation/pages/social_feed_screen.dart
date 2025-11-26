@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../domain/entities/social_activity_entity.dart';
 import '../blocs/social_activity/social_activity_bloc.dart';
 import '../blocs/social_activity/social_activity_event.dart';
 import '../blocs/social_activity/social_activity_state.dart';
@@ -28,8 +29,9 @@ class SocialFeedScreen extends StatelessWidget {
   void _refreshFeed(BuildContext context) {
     // Get current friend IDs and refresh
     context.read<SocialActivityBloc>().add(
-      const RefreshActivityFeed(['friend1', 'friend2']), // Replace with actual friend IDs
-    );
+          const RefreshActivityFeed(
+              ['friend1', 'friend2']), // Replace with actual friend IDs
+        );
   }
 }
 
@@ -116,8 +118,8 @@ class SocialFeedBody extends StatelessWidget {
   void _loadFeed(BuildContext context) {
     // Replace with actual friend IDs from friends bloc
     context.read<SocialActivityBloc>().add(
-      const LoadFriendsActivityFeed(['friend1', 'friend2']),
-    );
+          const LoadFriendsActivityFeed(['friend1', 'friend2']),
+        );
   }
 }
 
@@ -158,8 +160,8 @@ class ActivityCard extends StatelessWidget {
                       Text(
                         _formatTimestamp(activity.timestamp),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
-                        ),
+                              color: Colors.grey,
+                            ),
                       ),
                     ],
                   ),
@@ -197,7 +199,7 @@ class ActivityCard extends StatelessWidget {
       case 'challengeCompleted':
         return const Icon(Icons.sports_esports, color: Colors.purple);
       default:
-        return const Icon(Icons.activity, color: Colors.grey);
+        return const Icon(Icons.sports_score_sharp, color: Colors.grey);
     }
   }
 
@@ -211,7 +213,8 @@ class ActivityCard extends StatelessWidget {
             Text('Score: ${data['score']}/${data['totalQuestions']}'),
             Text('Accuracy: ${((data['accuracy'] as double) * 100).toInt()}%'),
             Text('Category: ${data['category']}'),
-            Text('Time: ${_formatDuration(Duration(seconds: data['timeTaken']))}'),
+            Text(
+                'Time: ${_formatDuration(Duration(seconds: data['timeTaken']))}'),
           ],
         );
       case 'achievementUnlocked':
@@ -252,7 +255,7 @@ class ActivityCard extends StatelessWidget {
 
   Widget _buildReactionsSection(BuildContext context, dynamic activity) {
     final reactions = activity.reactions as Map<String, dynamic>? ?? {};
-    
+
     return Row(
       children: [
         IconButton(
@@ -275,16 +278,19 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  void _addReaction(BuildContext context, String activityId, String reactionType) {
+  void _addReaction(
+      BuildContext context, String activityId, String reactionType) {
     // Replace with actual user ID
     const userId = 'current_user_id';
     context.read<SocialActivityBloc>().add(
-      AddReactionToActivity(
-        activityId: activityId,
-        userId: userId,
-        reactionType: reactionType == 'like' ? ReactionType.like : ReactionType.celebrate,
-      ),
-    );
+          AddReactionToActivity(
+            activityId: activityId,
+            userId: userId,
+            reactionType: reactionType == 'like'
+                ? ReactionType.like
+                : ReactionType.congratulate,
+          ),
+        );
   }
 
   void _showReactionsDialog(BuildContext context, dynamic activity) {
@@ -307,7 +313,7 @@ class ActivityCard extends StatelessWidget {
     if (timestamp is DateTime) {
       final now = DateTime.now();
       final difference = now.difference(timestamp);
-      
+
       if (difference.inMinutes < 1) {
         return 'Just now';
       } else if (difference.inHours < 1) {
