@@ -8,12 +8,12 @@ class FeedbackOverlay extends StatefulWidget {
   final VoidCallback? onAnimationComplete;
 
   const FeedbackOverlay({
-    Key? key,
+    super.key,
     required this.isCorrect,
     this.isTimeout = false,
     required this.message,
     this.onAnimationComplete,
-  }) : super(key: key);
+  });
 
   @override
   State<FeedbackOverlay> createState() => _FeedbackOverlayState();
@@ -78,7 +78,7 @@ class _FeedbackOverlayState extends State<FeedbackOverlay>
           child: Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.black.withOpacity(0.8),
+            color: Colors.black.withValues(alpha: 0.8),
             child: Center(
               child: Transform.scale(
                 scale: _scaleAnimation.value,
@@ -100,7 +100,7 @@ class _FeedbackOverlayState extends State<FeedbackOverlay>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -197,18 +197,18 @@ class SimpleFeedbackOverlay extends StatelessWidget {
   final Color? backgroundColor;
 
   const SimpleFeedbackOverlay({
-    Key? key,
+    super.key,
     required this.isCorrect,
     required this.message,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: backgroundColor ?? Colors.black.withOpacity(0.7),
+      color: backgroundColor ?? Colors.black.withValues(alpha: 0.7),
       child: Center(
         child: Container(
           margin: const EdgeInsets.all(32),

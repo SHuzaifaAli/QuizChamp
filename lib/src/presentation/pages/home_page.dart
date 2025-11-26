@@ -97,7 +97,7 @@ class HomePage extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (context) => sl<QuizBloc>()..add(const FetchNewQuiz(amount: 10, difficulty: 'easy')),
+          create: (context) => sl<QuizBloc>()..add(const StartQuizEvent(questionCount: 10, difficulty: 'easy')),
           child: const QuizPage(),
         ),
       ),

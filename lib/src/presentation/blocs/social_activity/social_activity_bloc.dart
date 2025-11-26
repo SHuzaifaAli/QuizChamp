@@ -163,13 +163,13 @@ class SocialActivityBloc
         'Creating achievement activity...'));
 
     try {
-      await _socialActivityRepository.createAchievementUnlockedActivity(
-        userId: event.userId,
-        userName: event.userName,
-        userPhotoUrl: event.userPhotoUrl,
-        achievementTitle: event.achievementTitle,
-        achievementDescription: event.achievementDescription,
-      );
+      await _socialActivityRepository.createAchievementUnlockedActivity({
+        'userId': event.userId,
+        'userName': event.userName,
+        'userPhotoUrl': event.userPhotoUrl,
+        'achievementTitle': event.achievementTitle,
+        'achievementDescription': event.achievementDescription,
+      });
 
       emit(const SocialActivityOperationSuccess(
           'Achievement activity created!'));
@@ -187,12 +187,12 @@ class SocialActivityBloc
         const SocialActivityOperationInProgress('Creating streak activity...'));
 
     try {
-      await _socialActivityRepository.createStreakActivity(
-        userId: event.userId,
-        userName: event.userName,
-        userPhotoUrl: event.userPhotoUrl,
-        streakDays: event.streakDays,
-      );
+      await _socialActivityRepository.createStreakActivity({
+        'userId': event.userId,
+        'userName': event.userName,
+        'userPhotoUrl': event.userPhotoUrl,
+        'streakDays': event.streakDays,
+      });
 
       emit(const SocialActivityOperationSuccess('Streak activity created!'));
     } catch (e) {

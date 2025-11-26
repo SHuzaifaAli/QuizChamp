@@ -15,16 +15,16 @@ class QuizScreen extends StatelessWidget {
   final String? difficulty;
 
   const QuizScreen({
-    Key? key,
+    super.key,
     required this.questionCount,
     this.category,
     this.difficulty,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Quiz'),
         backgroundColor: Theme.of(context).colorScheme.primary,
