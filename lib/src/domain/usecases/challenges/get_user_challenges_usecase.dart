@@ -1,5 +1,3 @@
-import 'package:dartz/dartz.dart';
-import '../../errors/failures.dart';
 import '../../repositories/challenges_repository.dart';
 import '../entities/challenge_entity.dart';
 

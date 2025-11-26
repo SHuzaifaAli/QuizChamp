@@ -1,5 +1,4 @@
 import 'package:bloc/bloc.dart';
-import '../../../domain/entities/social_activity_entity.dart';
 import '../../../domain/usecases/social/get_friends_activity_feed_usecase.dart';
 import '../../../domain/usecases/social/create_quiz_completed_activity_usecase.dart';
 import '../../../domain/usecases/social/add_reaction_to_activity_usecase.dart';

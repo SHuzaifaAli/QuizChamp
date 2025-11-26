@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dartz/dartz.dart';
 import '../../domain/entities/challenge_entity.dart';
+import '../../domain/entities/question_entity.dart';
 import '../../domain/repositories/challenges_repository.dart';
+import '../../core/error/failures.dart';
 import '../datasources/challenges_remote_datasource.dart';
 
 class ChallengesRepositoryImpl implements ChallengesRepository {
@@ -9,150 +12,95 @@ class ChallengesRepositoryImpl implements ChallengesRepository {
   ChallengesRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<void> createChallenge({
-    required String challengerId,
-    required String challengedId,
-    required String challengerName,
-    required String challengedName,
-    String? challengerPhotoUrl,
-    String? challengedPhotoUrl,
-    required String category,
-    required String difficulty,
-    required List<QuestionEntity> questions,
-    DateTime? expiresAt,
-  }) async {
-    final challenge = Challenge(
-      id: _generateChallengeId(),
-      challengerId: challengerId,
-      challengedId: challengedId,
-      challengerName: challengerName,
-      challengedName: challengedName,
-      challengerPhotoUrl: challengerPhotoUrl,
-      challengedPhotoUrl: challengedPhotoUrl,
-      category: category,
-      difficulty: difficulty,
-      questions: questions,
-      status: ChallengeStatus.pending,
-      createdAt: DateTime.now(),
-      expiresAt: expiresAt ?? DateTime.now().add(const Duration(days: 7)),
-    );
-
-    await _remoteDataSource.createChallenge(challenge);
+  Future<Either<Failure, Challenge>> createChallenge(CreateChallengeParams params) async {
+    try {
+      final challenge = Challenge(
+        id: _generateChallengeId(),
+        challengerId: params.challengerId,
+        challengedId: params.challengedId,
+        challengerName: '',  // These need to be fetched from user service
+        challengedName: '',  // These need to be fetched from user service
+        challengerPhotoUrl: null,
+        challengedPhotoUrl: null,
+        category: params.category,
+        difficulty: params.difficulty,
+        questions: params.questions,
+        status: ChallengeStatus.pending,
+        createdAt: DateTime.now(),
+        expiresAt: null,
+        message: params.message,
+      );
+      
+      await _remoteDataSource.createChallenge(challenge);
+      return Right(challenge);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<Challenge?> getChallenge(String challengeId) async {
-    return await _remoteDataSource.getChallenge(challengeId);
+  Future<Either<Failure, void>> acceptChallenge(String challengeId, String userId) async {
+    try {
+      await _remoteDataSource.updateChallengeStatus(challengeId, ChallengeStatus.accepted);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   @override
-  Stream<List<Challenge>> getUserChallenges(String userId) {
+  Future<Either<Failure, void>> declineChallenge(String challengeId, String userId) async {
+    try {
+      await _remoteDataSource.updateChallengeStatus(challengeId, ChallengeStatus.declined);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> submitChallengeResult(String challengeId, ChallengeResult result) async {
+    try {
+      await _remoteDataSource.updateChallengeResult(challengeId, result);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Stream<List<Challenge>> getChallengesStream(String userId) {
     return _remoteDataSource.getUserChallenges(userId);
   }
 
   @override
-  Future<void> acceptChallenge(String challengeId) async {
-    await _remoteDataSource.updateChallengeStatus(
-      challengeId,
-      ChallengeStatus.accepted,
-    );
-  }
-
-  @override
-  Future<void> declineChallenge(String challengeId) async {
-    await _remoteDataSource.updateChallengeStatus(
-      challengeId,
-      ChallengeStatus.declined,
-    );
-  }
-
-  @override
-  Future<void> startChallenge(String challengeId) async {
-    await _remoteDataSource.updateChallengeStatus(
-      challengeId,
-      ChallengeStatus.inProgress,
-    );
-  }
-
-  @override
-  Future<void> completeChallenge({
-    required String challengeId,
-    required int challengerScore,
-    required int challengedScore,
-  }) async {
-    await _remoteDataSource.updateChallengeScores(
-      challengeId,
-      challengerScore,
-      challengedScore,
-    );
-  }
-
-  @override
-  Future<void> cancelChallenge(String challengeId) async {
-    await _remoteDataSource.updateChallengeStatus(
-      challengeId,
-      ChallengeStatus.cancelled,
-    );
-  }
-
-  @override
-  Future<List<Challenge>> getPendingChallenges(String userId) async {
-    return await _remoteDataSource.getPendingChallenges(userId);
-  }
-
-  @override
-  Future<List<Challenge>> getActiveChallenges(String userId) async {
-    return await _remoteDataSource.getActiveChallenges(userId);
-  }
-
-  @override
-  Future<List<Challenge>> getCompletedChallenges(String userId) async {
-    return await _remoteDataSource.getCompletedChallenges(userId);
-  }
-
-  @override
-  Stream<List<Challenge>> getChallengeUpdates(String challengeId) {
-    return FirebaseFirestore.instance
-        .collection('challenges')
-        .doc(challengeId)
-        .snapshots()
-        .map((snapshot) {
-          if (!snapshot.exists) return <Challenge>[];
-          final challenge = ChallengeModel.fromFirestore(snapshot);
-          return [challenge];
-        });
-  }
-
-  @override
-  Future<bool> isChallengeExpired(String challengeId) async {
-    final challenge = await getChallenge(challengeId);
-    if (challenge == null) return true;
-    
-    return challenge.expiresAt?.isBefore(DateTime.now()) ?? false;
-  }
-
-  @override
-  Future<void> deleteExpiredChallenges() async {
-    final cutoffDate = DateTime.now();
-    
-    final snapshot = await FirebaseFirestore.instance
-        .collection('challenges')
-        .where('expiresAt', isLessThan: cutoffDate)
-        .where('status', whereIn: [
-          ChallengeStatus.pending.name,
-          ChallengeStatus.accepted.name,
-        ])
-        .get();
-
-    final batch = FirebaseFirestore.instance.batch();
-    for (final doc in snapshot.docs) {
-      batch.update(doc.reference, {
-        'status': ChallengeStatus.expired.name,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+  Future<Either<Failure, Challenge?>> getChallengeById(String challengeId) async {
+    try {
+      final challenge = await _remoteDataSource.getChallenge(challengeId);
+      return Right(challenge);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
+  }
 
-    await batch.commit();
+  @override
+  Future<Either<Failure, List<Challenge>>> getChallengeHistory(String userId, {int limit = 20, String? lastChallengeId}) async {
+    try {
+      final challenges = await _remoteDataSource.getCompletedChallenges(userId);
+      return Right(challenges.take(limit).toList());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteChallengeResult(String challengeId, String userId) async {
+    try {
+      await _remoteDataSource.deleteChallenge(challengeId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   String _generateChallengeId() {

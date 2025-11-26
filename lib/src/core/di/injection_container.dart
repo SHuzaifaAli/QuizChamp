@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // Auth imports
 import 'package:quiz_champ/src/data/datasources/auth_remote_datasource.dart';
@@ -170,18 +172,18 @@ Future<void> init() async {
 
   // Repositories
   sl.registerLazySingleton<ChallengesRepository>(
-    () => ChallengesRepositoryImpl(remoteDataSource: sl()),
+    () => ChallengesRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<SocialActivityRepository>(
-    () => SocialActivityRepositoryImpl(remoteDataSource: sl()),
+    () => SocialActivityRepositoryImpl(sl()),
   );
 
   // Data sources
   sl.registerLazySingleton<ChallengesRemoteDataSource>(
-    () => ChallengesRemoteDataSourceImpl(),
+    () => ChallengesRemoteDataSource(FirebaseFirestore.instance),
   );
   sl.registerLazySingleton<SocialActivityRemoteDataSource>(
-    () => SocialActivityRemoteDataSourceImpl(),
+    () => SocialActivityRemoteDataSource(FirebaseFirestore.instance),
   );
 
   //! Legacy Quiz (to be removed)

@@ -8,13 +8,13 @@ class QuizProgressBar extends StatefulWidget {
   final double height;
 
   const QuizProgressBar({
-    Key? key,
+    super.key,
     required this.currentQuestion,
     required this.totalQuestions,
     this.progressColor,
     this.backgroundColor,
     this.height = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   State<QuizProgressBar> createState() => _QuizProgressBarState();
@@ -266,13 +266,13 @@ class StepProgressBar extends StatelessWidget {
   final double stepSize;
 
   const StepProgressBar({
-    Key? key,
+    super.key,
     required this.currentStep,
     required this.totalSteps,
     this.activeColor,
     this.inactiveColor,
     this.stepSize = 12.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

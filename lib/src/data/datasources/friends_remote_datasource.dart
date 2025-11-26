@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend_model.dart';
 import '../models/friend_request_model.dart';
 import '../../core/error/failures.dart';
+import '../../domain/entities/friend_request_entity.dart';
+import '../../domain/entities/friend_entity.dart';
 
 abstract class FriendsRemoteDataSource {
   Stream<List<FriendModel>> getFriendsStream(String userId);
@@ -130,14 +132,14 @@ class FriendsRemoteDataSourceImpl implements FriendsRemoteDataSource {
         isOnline: false,
         lastSeen: now,
         status: FriendshipStatus.accepted,
-        stats: const SocialStatsModel(
+        stats: SocialStatsModel(
           totalQuizzes: 0,
           correctAnswers: 0,
           accuracyPercentage: 0.0,
           currentStreak: 0,
           longestStreak: 0,
           totalPoints: 0,
-          lastQuizDate: null,
+          lastQuizDate: DateTime.now(),
         ),
       );
 
@@ -159,14 +161,14 @@ class FriendsRemoteDataSourceImpl implements FriendsRemoteDataSource {
         isOnline: false,
         lastSeen: now,
         status: FriendshipStatus.accepted,
-        stats: const SocialStatsModel(
+        stats: SocialStatsModel(
           totalQuizzes: 0,
           correctAnswers: 0,
           accuracyPercentage: 0.0,
           currentStreak: 0,
           longestStreak: 0,
           totalPoints: 0,
-          lastQuizDate: null,
+          lastQuizDate: DateTime.now(),
         ),
       );
 

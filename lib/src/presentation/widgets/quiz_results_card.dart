@@ -11,7 +11,7 @@ class QuizResultsCard extends StatefulWidget {
   final VoidCallback? onGoHome;
 
   const QuizResultsCard({
-    Key? key,
+    super.key,
     required this.session,
     required this.correctAnswers,
     required this.totalQuestions,
@@ -19,7 +19,7 @@ class QuizResultsCard extends StatefulWidget {
     required this.totalTime,
     this.onPlayAgain,
     this.onGoHome,
-  }) : super(key: key);
+  });
 
   @override
   State<QuizResultsCard> createState() => _QuizResultsCardState();

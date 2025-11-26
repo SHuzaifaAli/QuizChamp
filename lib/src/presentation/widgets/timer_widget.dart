@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class TimerWidget extends StatefulWidget {
   final int remainingTime;
@@ -7,11 +6,11 @@ class TimerWidget extends StatefulWidget {
   final VoidCallback? onTimeUp;
 
   const TimerWidget({
-    Key? key,
+    super.key,
     required this.remainingTime,
     required this.totalTime,
     this.onTimeUp,
-  }) : super(key: key);
+  });
 
   @override
   State<TimerWidget> createState() => _TimerWidgetState();

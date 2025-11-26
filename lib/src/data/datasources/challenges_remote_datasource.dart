@@ -12,26 +12,9 @@ class ChallengesRemoteDataSource {
       _firestore.collection('challenges');
 
   Future<void> createChallenge(Challenge challenge) async {
-    final challengeModel = ChallengeModel(
-      id: challenge.id,
-      challengerId: challenge.challengerId,
-      challengedId: challenge.challengedId,
-      challengerName: challenge.challengerName,
-      challengedName: challenge.challengedName,
-      challengerPhotoUrl: challenge.challengerPhotoUrl,
-      challengedPhotoUrl: challenge.challengedPhotoUrl,
-      category: challenge.category,
-      difficulty: challenge.difficulty,
-      questions: challenge.questions,
-      status: challenge.status,
-      createdAt: challenge.createdAt,
-      expiresAt: challenge.expiresAt,
-      challengerScore: challenge.challengerScore,
-      challengedScore: challenge.challengedScore,
-      completedAt: challenge.completedAt,
-    );
+    final challengeModel = ChallengeModel.fromEntity(challenge);
 
-    await _challengesCollection.doc(challenge.id).set(challengeModel.toMap());
+    await _challengesCollection.doc(challenge.id).set(challengeModel.toFirestore());
   }
 
   Future<Challenge?> getChallenge(String challengeId) async {
@@ -43,8 +26,10 @@ class ChallengesRemoteDataSource {
 
   Stream<List<Challenge>> getUserChallenges(String userId) {
     return _challengesCollection
-        .where('challengerId', isEqualTo: userId)
-        .orWhere('challengedId', isEqualTo: userId)
+        .where(Filter.or(
+          Filter('challengerId', isEqualTo: userId),
+          Filter('challengedId', isEqualTo: userId),
+        ))
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -76,6 +61,15 @@ class ChallengesRemoteDataSource {
     await _challengesCollection.doc(challengeId).delete();
   }
 
+  Future<void> updateChallengeResult(String challengeId, ChallengeResult result) async {
+    await _challengesCollection.doc(challengeId).update({
+      if (result.userId == 'challenger') 'challengerResult': result.toMap(),
+      if (result.userId == 'challenged') 'challengedResult': result.toMap(),
+      'status': ChallengeStatus.completed.name,
+      'completedAt': Timestamp.fromDate(result.completedAt),
+    });
+  }
+
   Future<List<Challenge>> getPendingChallenges(String userId) async {
     final snapshot = await _challengesCollection
         .where('challengedId', isEqualTo: userId)
@@ -90,13 +84,13 @@ class ChallengesRemoteDataSource {
 
   Future<List<Challenge>> getActiveChallenges(String userId) async {
     final snapshot = await _challengesCollection
-        .where(FieldFilter.or(
+        .where(Filter.or(
           Filter('challengerId', isEqualTo: userId),
           Filter('challengedId', isEqualTo: userId),
         ))
         .where('status', whereIn: [
           ChallengeStatus.accepted.name,
-          ChallengeStatus.inProgress.name,
+          ChallengeStatus.active.name,
         ])
         .orderBy('createdAt', descending: true)
         .get();
@@ -108,7 +102,7 @@ class ChallengesRemoteDataSource {
 
   Future<List<Challenge>> getCompletedChallenges(String userId) async {
     final snapshot = await _challengesCollection
-        .where(FieldFilter.or(
+        .where(Filter.or(
           Filter('challengerId', isEqualTo: userId),
           Filter('challengedId', isEqualTo: userId),
         ))

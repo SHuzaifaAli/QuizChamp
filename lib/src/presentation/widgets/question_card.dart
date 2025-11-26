@@ -10,14 +10,14 @@ class QuestionCard extends StatefulWidget {
   final bool isTimeout;
 
   const QuestionCard({
-    Key? key,
+    super.key,
     required this.question,
     this.onAnswerSelected,
     this.selectedAnswerIndex,
     this.showCorrectAnswer = false,
     this.isInteractionEnabled = true,
     this.isTimeout = false,
-  }) : super(key: key);
+  });
 
   @override
   State<QuestionCard> createState() => _QuestionCardState();

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/social_activity_entity.dart';
-import '../../domain/repositories/social_activity_repository.dart';
 import '../models/social_activity_model.dart';
 
 class SocialActivityRemoteDataSource {
@@ -12,20 +11,59 @@ class SocialActivityRemoteDataSource {
       _firestore.collection('social_activities');
 
   Future<void> createActivity(SocialActivity activity) async {
-    final activityModel = SocialActivityModel(
-      id: activity.id,
-      userId: activity.userId,
-      userName: activity.userName,
-      userPhotoUrl: activity.userPhotoUrl,
-      type: activity.type,
-      data: activity.data,
-      timestamp: activity.timestamp,
-      reactions: activity.reactions,
-      isVisible: activity.isVisible,
-      description: activity.description,
-    );
+    final activityModel = SocialActivityModel.fromEntity(activity);
 
     await _activitiesCollection.doc(activity.id).set(activityModel.toMap());
+  }
+
+  Future<void> deleteActivity(String activityId) async {
+    await _activitiesCollection.doc(activityId).delete();
+  }
+
+  Future<void> addReaction(String activityId, String userId, ReactionType reactionType) async {
+    await _activitiesCollection.doc(activityId).update({
+      'reactions.$userId': {
+        'type': reactionType.toString().split('.').last,
+        'timestamp': Timestamp.fromDate(DateTime.now()),
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> removeReaction(String activityId, String userId, ReactionType reactionType) async {
+    await _activitiesCollection.doc(activityId).update({
+      'reactions.$userId': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<List<SocialActivity>> getFriendActivities(List<String> friendIds, {int limit = 20}) async {
+    if (friendIds.isEmpty) {
+      return [];
+    }
+
+    final snapshot = await _activitiesCollection
+        .where('userId', whereIn: friendIds)
+        .where('isVisible', isEqualTo: true)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => SocialActivityModel.fromFirestore(doc))
+        .toList();
+  }
+
+  Stream<List<SocialActivity>> getActivityFeed(String userId) {
+    return _activitiesCollection
+        .where('userId', isEqualTo: userId)
+        .where('isVisible', isEqualTo: true)
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => SocialActivityModel.fromFirestore(doc))
+            .toList());
   }
 
   Future<SocialActivity?> getActivity(String activityId) async {
@@ -116,7 +154,7 @@ class SocialActivityRemoteDataSource {
 
   Future<List<SocialActivity>> getActivitiesByType(
     List<String> friendIds,
-    SocialActivityType type, {
+    ActivityType type, {
     int limit = 10,
   }) async {
     if (friendIds.isEmpty) {
@@ -134,10 +172,6 @@ class SocialActivityRemoteDataSource {
     return snapshot.docs
         .map((doc) => SocialActivityModel.fromFirestore(doc))
         .toList();
-  }
-
-  Future<void> deleteActivity(String activityId) async {
-    await _activitiesCollection.doc(activityId).delete();
   }
 
   Future<void> cleanupOldActivities({int daysOld = 90}) async {

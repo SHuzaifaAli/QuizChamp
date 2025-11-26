@@ -52,8 +52,9 @@ class SocialActivityModel extends SocialActivity {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'userId': userId,
       'userName': userName,
       'userPhotoUrl': userPhotoUrl,
@@ -64,47 +65,6 @@ class SocialActivityModel extends SocialActivity {
       'isVisible': isVisible,
       'description': description,
     };
-  }
-
-  static String generateDescription(ActivityType type, Map<String, dynamic> data, String userName) {
-    switch (type) {
-      case ActivityType.quizCompleted:
-        final score = data['score'] ?? 0;
-        final category = data['category'] ?? 'General';
-        return '$userName completed a $category quiz with $score points!';
-      
-      case ActivityType.achievementUnlocked:
-        final achievement = data['achievement'] ?? 'Unknown Achievement';
-        return '$userName unlocked the "$achievement" achievement!';
-      
-      case ActivityType.streakAchieved:
-        final streak = data['streak'] ?? 0;
-        return '$userName achieved a $streak-quiz streak!';
-      
-      case ActivityType.challengeWon:
-        final opponent = data['opponent'] ?? 'someone';
-        return '$userName won a challenge against $opponent!';
-      
-      case ActivityType.challengeLost:
-        final opponent = data['opponent'] ?? 'someone';
-        return '$userName lost a challenge to $opponent but played well!';
-      
-      case ActivityType.friendAdded:
-        final friend = data['friend'] ?? 'someone';
-        return '$userName is now friends with $friend!';
-      
-      case ActivityType.levelUp:
-        final level = data['level'] ?? 0;
-        return '$userName reached level $level!';
-      
-      case ActivityType.personalBest:
-        final metric = data['metric'] ?? 'score';
-        final value = data['value'] ?? 0;
-        return '$userName set a new personal best $metric of $value!';
-      
-      default:
-        return '$userName had some quiz activity!';
-    }
   }
 }
 

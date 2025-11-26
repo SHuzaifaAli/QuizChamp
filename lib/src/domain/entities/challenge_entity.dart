@@ -149,6 +149,26 @@ class ChallengeResult extends Equatable {
     required this.answers,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'score': score,
+      'correctAnswers': correctAnswers,
+      'totalQuestions': totalQuestions,
+      'accuracyPercentage': accuracyPercentage,
+      'timeToCompleteMs': timeToComplete.inMilliseconds,
+      'completedAt': completedAt.toIso8601String(),
+      'answers': answers
+          .map((a) => {
+                'questionId': a.questionId,
+                'selectedAnswerIndex': a.selectedAnswerIndex,
+                'isCorrect': a.isCorrect,
+                'timeToAnswerMs': a.timeToAnswer.inMilliseconds,
+              })
+          .toList(),
+    };
+  }
+
   @override
   List<Object?> get props => [
         userId,
