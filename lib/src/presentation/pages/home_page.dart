@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quiz_champ/src/core/di/injection_container.dart';
 import 'package:quiz_champ/src/domain/entities/user_entity.dart';
 import 'package:quiz_champ/src/presentation/blocs/auth/auth_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/leaderboard/leaderboard_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_event.dart';
+import 'package:quiz_champ/src/presentation/pages/leaderboard_page.dart';
 import 'package:quiz_champ/src/presentation/pages/quiz_page.dart';
 import 'package:quiz_champ/src/presentation/pages/sign_in_page.dart';
 
@@ -52,8 +54,15 @@ class HomePage extends StatelessWidget {
               leading: const Icon(Icons.leaderboard),
               title: const Text('Leaderboards'),
               onTap: () {
-                // Navigate to Leaderboards Page
                 Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (context) => sl<LeaderboardBloc>(),
+                      child: LeaderboardPage(user: user),
+                    ),
+                  ),
+                );
               },
             ),
             ListTile(

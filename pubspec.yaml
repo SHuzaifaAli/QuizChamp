@@ -39,9 +39,12 @@ dependencies:
   # Native Features
   wakelock_plus: ^1.1.1
   audioplayers: ^5.2.1
+  share_plus: ^7.2.2
+  qr_flutter: ^4.1.0
   
   # Firebase (for backend/notifications/analytics)
   firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
   firebase_messaging: ^14.7.10
   cloud_firestore: ^4.13.3
   firebase_analytics: ^10.7.3

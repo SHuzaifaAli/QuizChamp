@@ -96,3 +96,21 @@ class UserBlocked extends FriendsState {
   @override
   List<Object?> get props => [message];
 }
+
+class UsersSearchLoaded extends FriendsState {
+  final List<Friend> users;
+
+  const UsersSearchLoaded({required this.users});
+
+  @override
+  List<Object?> get props => [users];
+}
+
+class FriendRequestsLoaded extends FriendsState {
+  final List<FriendRequest> requests;
+
+  const FriendRequestsLoaded({required this.requests});
+
+  @override
+  List<Object?> get props => [requests];
+}

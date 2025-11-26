@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:quiz_champ/src/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
@@ -14,11 +15,39 @@ class UserModel extends UserEntity {
   });
 
   factory UserModel.fromGoogleAccount(GoogleSignInAccount account) {
+    // Extract display name with better fallback
+    String displayName = 'User';
+    if (account.displayName != null && account.displayName!.isNotEmpty) {
+      displayName = account.displayName!;
+    } else {
+      // Use email prefix as fallback (e.g., "john.doe" from "john.doe@gmail.com")
+      displayName = account.email.split('@')[0];
+    }
+    
     return UserModel(
       id: account.id,
-      displayName: account.displayName ?? 'User',
+      displayName: displayName,
       email: account.email,
       photoUrl: account.photoUrl,
+      createdAt: DateTime.now(), // Placeholder: In a real app, this would come from the backend
+    );
+  }
+
+  factory UserModel.fromFirebaseUser(User user) {
+    // Extract display name with better fallback
+    String displayName = 'User';
+    if (user.displayName != null && user.displayName!.isNotEmpty) {
+      displayName = user.displayName!;
+    } else if (user.email != null) {
+      // Use email prefix as fallback (e.g., "john.doe" from "john.doe@gmail.com")
+      displayName = user.email!.split('@')[0];
+    }
+    
+    return UserModel(
+      id: user.uid,
+      displayName: displayName,
+      email: user.email ?? '',
+      photoUrl: user.photoURL,
       createdAt: DateTime.now(), // Placeholder: In a real app, this would come from the backend
     );
   }

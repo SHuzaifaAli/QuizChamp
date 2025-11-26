@@ -64,10 +64,7 @@ class FriendsBloc extends Bloc<FriendsEvent, FriendsState> {
       _friendRequestsSubscription = friendsRepository.getFriendRequestsStream(event.userId).listen(
         (requests) {
           _currentFriendRequests = requests;
-          emit(FriendsLoaded(
-            friends: _currentFriends,
-            friendRequests: _currentFriendRequests,
-          ));
+          emit(FriendRequestsLoaded(requests: _currentFriendRequests));
         },
         onError: (error) {
           emit(FriendsError(message: 'Failed to load friend requests: ${error.toString()}'));
@@ -134,23 +131,13 @@ class FriendsBloc extends Bloc<FriendsEvent, FriendsState> {
       return;
     }
 
-    emit(FriendsLoaded(
-      friends: _currentFriends,
-      friendRequests: _currentFriendRequests,
-      searchResults: [],
-      isSearching: true,
-    ));
+    emit(FriendsLoading());
 
     final result = await friendsRepository.searchUsers(event.query, event.currentUserId);
 
     result.fold(
       (failure) => emit(FriendsError(message: _mapFailureToMessage(failure))),
-      (users) => emit(FriendsLoaded(
-        friends: _currentFriends,
-        friendRequests: _currentFriendRequests,
-        searchResults: users,
-        isSearching: false,
-      )),
+      (users) => emit(UsersSearchLoaded(users: users)),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:quiz_champ/src/core/error/failures.dart';
 import 'package:quiz_champ/src/data/models/user_model.dart';
 
@@ -10,26 +11,48 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final GoogleSignIn googleSignIn;
+  final FirebaseAuth firebaseAuth;
 
-  AuthRemoteDataSourceImpl({required this.googleSignIn});
+  AuthRemoteDataSourceImpl({
+    required this.googleSignIn,
+    required this.firebaseAuth,
+  });
 
   @override
   Future<UserModel?> getSignedInUser() async {
-    final account = await googleSignIn.signInSilently();
-    if (account != null) {
-      return UserModel.fromGoogleAccount(account);
+    try {
+      final user = firebaseAuth.currentUser;
+      if (user != null) {
+        return UserModel.fromFirebaseUser(user);
+      }
+      return null;
+    } catch (e) {
+      throw AuthFailure(message: e.toString());
     }
-    return null;
   }
 
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
-      final account = await googleSignIn.signIn();
-      if (account == null) {
+      // Trigger the Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
         throw UserCancelledAuthFailure();
       }
-      return UserModel.fromGoogleAccount(account);
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final UserCredential userCredential = await firebaseAuth.signInWithCredential(credential);
+      
+      return UserModel.fromFirebaseUser(userCredential.user!);
     } on UserCancelledAuthFailure {
       rethrow;
     } catch (e) {
@@ -39,6 +62,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
-    await googleSignIn.signOut();
+    try {
+      await firebaseAuth.signOut();
+      await googleSignIn.signOut();
+    } catch (e) {
+      throw AuthFailure(message: e.toString());
+    }
   }
 }

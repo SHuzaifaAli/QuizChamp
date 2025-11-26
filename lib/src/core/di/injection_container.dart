@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -11,6 +12,7 @@ import 'package:quiz_champ/src/domain/repositories/auth_repository.dart';
 import 'package:quiz_champ/src/domain/usecases/auth/get_user_status.dart';
 import 'package:quiz_champ/src/domain/usecases/auth/sign_in_with_google.dart';
 import 'package:quiz_champ/src/domain/usecases/auth/sign_out.dart';
+import 'package:quiz_champ/src/data/services/user_service.dart';
 import 'package:quiz_champ/src/presentation/blocs/auth/auth_bloc.dart';
 
 // Enhanced Quiz Engine imports
@@ -24,10 +26,18 @@ import 'package:quiz_champ/src/data/repositories/animation_service_impl.dart';
 // Social Features imports
 import 'package:quiz_champ/src/data/datasources/challenges_remote_datasource.dart';
 import 'package:quiz_champ/src/data/datasources/social_activity_remote_datasource.dart';
+import 'package:quiz_champ/src/data/datasources/leaderboard_remote_datasource.dart';
+import 'package:quiz_champ/src/data/datasources/friends_remote_datasource.dart';
 import 'package:quiz_champ/src/data/repositories/challenges_repository_impl.dart';
 import 'package:quiz_champ/src/data/repositories/social_activity_repository_impl.dart';
+import 'package:quiz_champ/src/data/repositories/leaderboard_repository_impl.dart';
+import 'package:quiz_champ/src/data/repositories/friends_repository_impl.dart';
+import 'package:quiz_champ/src/data/repositories/sharing_service_impl.dart';
 import 'package:quiz_champ/src/domain/repositories/challenges_repository.dart';
 import 'package:quiz_champ/src/domain/repositories/social_activity_repository.dart';
+import 'package:quiz_champ/src/domain/repositories/leaderboard_repository.dart';
+import 'package:quiz_champ/src/domain/repositories/friends_repository.dart';
+import 'package:quiz_champ/src/domain/repositories/sharing_service.dart';
 import 'package:quiz_champ/src/domain/usecases/challenges/create_challenge_usecase.dart';
 import 'package:quiz_champ/src/domain/usecases/challenges/get_challenge_usecase.dart';
 import 'package:quiz_champ/src/domain/usecases/challenges/get_user_challenges_usecase.dart';
@@ -38,8 +48,14 @@ import 'package:quiz_champ/src/domain/usecases/challenges/get_pending_challenges
 import 'package:quiz_champ/src/domain/usecases/social/get_friends_activity_feed_usecase.dart';
 import 'package:quiz_champ/src/domain/usecases/social/create_quiz_completed_activity_usecase.dart';
 import 'package:quiz_champ/src/domain/usecases/social/add_reaction_to_activity_usecase.dart';
+import 'package:quiz_champ/src/domain/usecases/social/send_friend_request_usecase.dart';
+import 'package:quiz_champ/src/domain/usecases/social/accept_friend_request_usecase.dart';
 import 'package:quiz_champ/src/presentation/blocs/challenges/challenges_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/social_activity/social_activity_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/leaderboard/leaderboard_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/friends/friends_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/sharing/sharing_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/hearts/hearts_bloc.dart';
 import 'package:quiz_champ/src/data/repositories/hearts_service_impl.dart';
 import 'package:quiz_champ/src/domain/repositories/question_repository.dart';
 import 'package:quiz_champ/src/domain/repositories/quiz_repository.dart';
@@ -75,12 +91,25 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: sl()),
+    () => AuthRepositoryImpl(
+      remoteDataSource: sl(),
+      userService: sl(),
+    ),
   );
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(googleSignIn: sl()),
+    () => AuthRemoteDataSourceImpl(
+      googleSignIn: sl(),
+      firebaseAuth: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton<UserService>(
+    () => UserService(
+      firestore: sl(),
+      auth: sl(),
+    ),
   );
 
   //! Features - Enhanced Quiz Engine
@@ -156,6 +185,12 @@ Future<void> init() async {
     ),
   );
 
+  sl.registerFactory(
+    () => LeaderboardBloc(
+      repository: sl(),
+    ),
+  );
+
   // Challenges Use cases
   sl.registerLazySingleton(() => CreateChallengeUseCase(sl()));
   sl.registerLazySingleton(() => GetChallengeUseCase(sl()));
@@ -177,13 +212,49 @@ Future<void> init() async {
   sl.registerLazySingleton<SocialActivityRepository>(
     () => SocialActivityRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton<LeaderboardRepository>(
+    () => LeaderboardRepositoryImpl(remoteDataSource: sl()),
+  );
 
   // Data sources
   sl.registerLazySingleton<ChallengesRemoteDataSource>(
-    () => ChallengesRemoteDataSource(FirebaseFirestore.instance),
+    () => ChallengesRemoteDataSource(sl()),
   );
   sl.registerLazySingleton<SocialActivityRemoteDataSource>(
-    () => SocialActivityRemoteDataSource(FirebaseFirestore.instance),
+    () => SocialActivityRemoteDataSource(sl()),
+  );
+  sl.registerLazySingleton<LeaderboardRemoteDataSource>(
+    () => LeaderboardRemoteDataSourceImpl(firestore: sl()),
+  );
+  sl.registerLazySingleton<FriendsRemoteDataSource>(
+    () => FriendsRemoteDataSourceImpl(firestore: sl()),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<FriendsRepository>(
+    () => FriendsRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<SharingService>(
+    () => SharingServiceImpl(),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => SendFriendRequestUseCase(friendsRepository: sl()));
+  sl.registerLazySingleton(() => AcceptFriendRequestUseCase(friendsRepository: sl()));
+
+  // Blocs
+  sl.registerFactory(
+    () => FriendsBloc(
+      friendsRepository: sl(),
+      sendFriendRequestUseCase: sl(),
+      acceptFriendRequestUseCase: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => SharingBloc(sharingService: sl()),
+  );
+  sl.registerFactory(
+    () => HeartsBloc(heartsService: sl()),
   );
 
   //! Legacy Quiz (to be removed)
@@ -201,5 +272,7 @@ Future<void> init() async {
 
   // External
   sl.registerLazySingleton(() => GoogleSignIn());
+  sl.registerLazySingleton(() => FirebaseAuth.instance);
+  sl.registerLazySingleton(() => FirebaseFirestore.instance);
   sl.registerLazySingleton(() => AudioPlayer());
 }

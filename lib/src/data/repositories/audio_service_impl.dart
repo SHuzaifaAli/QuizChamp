@@ -8,7 +8,7 @@ class AudioServiceImpl implements AudioService {
   // Audio file paths
   static const String _correctSoundPath = 'audio/correct.mp3';
   static const String _incorrectSoundPath = 'audio/wrong.mp3';
-  static const String _timeoutSoundPath = 'audio/timeout.mp3';
+  static const String _timeoutSoundPath = 'audio/wrong.mp3'; // Use wrong sound for timeout since timeout.mp3 doesn't exist
 
   AudioServiceImpl({AudioPlayer? audioPlayer}) 
       : _audioPlayer = audioPlayer ?? AudioPlayer() {
