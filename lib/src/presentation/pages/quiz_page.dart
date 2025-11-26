@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_event.dart';
+import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_state.dart';
 
 class QuizPage extends StatelessWidget {
   const QuizPage({super.key});
@@ -11,7 +13,7 @@ class QuizPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Active Quiz')),
       body: BlocConsumer<QuizBloc, QuizState>(
         listener: (context, state) {
-          if (state is QuizFinishedState) {
+          if (state is QuizCompleted) {
             _showQuizResult(context, state);
           } else if (state is QuizError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -23,7 +25,7 @@ class QuizPage extends StatelessWidget {
         builder: (context, state) {
           if (state is QuizLoading) {
             return const Center(child: CircularProgressIndicator());
-          } else if (state is QuizLoaded) {
+          } else if (state is QuestionDisplayed) {
             return _buildQuizContent(context, state);
           }
           return const Center(child: Text('Press start on the home screen.'));
@@ -32,7 +34,7 @@ class QuizPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuizContent(BuildContext context, QuizLoaded state) {
+  Widget _buildQuizContent(BuildContext context, QuestionDisplayed state) {
     final question = state.currentQuestion;
     final bloc = context.read<QuizBloc>();
 
@@ -42,12 +44,12 @@ class QuizPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Question ${state.currentQuestionIndex + 1} of ${state.questions.length}',
+            'Question ${state.questionNumber} of ${state.totalQuestions}',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           LinearProgressIndicator(
-            value: (state.currentQuestionIndex + 1) / state.questions.length,
+            value: state.questionNumber / state.totalQuestions,
           ),
           const SizedBox(height: 20),
           Card(
@@ -62,45 +64,28 @@ class QuizPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ...question.answers.map((answer) {
-            final isSelected = state.selectedAnswer == answer;
-            final isCorrect = question.correctAnswer == answer;
-            Color? color;
-
-            if (state.isAnswered) {
-              if (isCorrect) {
-                color = Colors.green.shade100;
-              } else if (isSelected) {
-                color = Colors.red.shade100;
-              }
-            }
-
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: color,
                   padding: const EdgeInsets.all(15),
                   alignment: Alignment.centerLeft,
                 ),
-                onPressed: state.isAnswered
-                    ? null
-                    : () => bloc.add(AnswerQuestion(answer)),
+                onPressed: () => bloc.add(AnswerSelectedEvent(
+                  answerIndex: question.answers.indexOf(answer),
+                  timeToAnswer: Duration(seconds: 1),
+                )),
                 child: Text(answer, style: const TextStyle(fontSize: 16)),
               ),
             );
           }).toList(),
           const Spacer(),
-          if (state.isAnswered)
-            ElevatedButton(
-              onPressed: () => bloc.add(NextQuestion()),
-              child: Text(state.isLastQuestion ? 'Finish Quiz' : 'Next Question'),
-            ),
         ],
       ),
     );
   }
 
-  void _showQuizResult(BuildContext context, QuizFinishedState state) {
+  void _showQuizResult(BuildContext context, QuizCompleted state) {
     showDialog(
       context: context,
       barrierDismissible: false,
