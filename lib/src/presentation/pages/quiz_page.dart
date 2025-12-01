@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:quiz_champ/src/core/services/hearts_bloc_service.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_event.dart';
 import 'package:quiz_champ/src/presentation/blocs/quiz/quiz_state.dart';
+import 'package:quiz_champ/src/presentation/widgets/common/loading_widget.dart';
 import 'package:quiz_champ/src/presentation/widgets/timer_widget.dart';
 import 'package:quiz_champ/src/presentation/widgets/hearts_widget.dart';
 
@@ -16,7 +18,17 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  bool _isNavigating = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure global HeartsBloc is loaded with latest data from Firebase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      HeartsBlocService.initialize();
+    });
+  }
 
   @override
   void dispose() {
@@ -36,9 +48,9 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  void _showLottieAnimation(String type) {
-    if (!mounted) return;
-    
+  void _showFeedbackAnimation(BuildContext context, String type) {
+    if (_isNavigating) return; // Prevent multiple navigations
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -49,7 +61,7 @@ class _QuizPageState extends State<QuizPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Lottie.asset(
-                type == 'correct' 
+                type == 'correct'
                     ? 'assets/lottie/correct_answer.json'
                     : 'assets/lottie/wrong_answer.json',
                 width: 200,
@@ -57,7 +69,9 @@ class _QuizPageState extends State<QuizPage> {
                 repeat: false,
                 onLoaded: (composition) {
                   Future.delayed(composition.duration, () {
-                    if (mounted) Navigator.of(context).pop();
+                    if (mounted && !_isNavigating) {
+                      Navigator.of(context).pop();
+                    }
                   });
                 },
               ),
@@ -90,7 +104,10 @@ class _QuizPageState extends State<QuizPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error: ${state.message}')),
             );
-            Navigator.of(context).pop();
+            if (mounted && !_isNavigating) {
+              _isNavigating = true;
+              Navigator.of(context).pop();
+            }
           }
         },
         builder: (context, state) {
@@ -99,7 +116,10 @@ class _QuizPageState extends State<QuizPage> {
           } else if (state is QuestionDisplayed) {
             return _buildQuizContent(context, state);
           }
-          return const Center(child: Text('Press start on the home screen.'));
+          return const Center(
+              child: LoadingWidget(
+            message: "Loading Please wait",
+          ));
         },
       ),
     );
@@ -119,7 +139,8 @@ class _QuizPageState extends State<QuizPage> {
             children: [
               Text(
                 'Question ${state.questionNumber} of ${state.totalQuestions}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TimerWidget(
                 remainingTime: state.remainingTime,
@@ -158,22 +179,23 @@ class _QuizPageState extends State<QuizPage> {
                   alignment: Alignment.centerLeft,
                 ),
                 onPressed: () async {
-                final isCorrect = question.shuffledAnswers.indexOf(answer) == question.correctAnswerIndex;
-                if (isCorrect) {
-                  _playSound('correct');
-                  _showLottieAnimation('correct');
-                } else {
-                  _playSound('wrong');
-                  _showLottieAnimation('wrong');
-                }
-                
-                if (mounted) {
-                  bloc.add(AnswerSelectedEvent(
-                    answerIndex: question.shuffledAnswers.indexOf(answer),
-                    timeToAnswer: const Duration(seconds: 1),
-                  ));
-                }
-              },
+                  final isCorrect = question.shuffledAnswers.indexOf(answer) ==
+                      question.correctAnswerIndex;
+                  if (isCorrect) {
+                    _playSound('correct');
+                    _showFeedbackAnimation(context, 'correct');
+                  } else {
+                    _playSound('wrong');
+                    _showFeedbackAnimation(context, 'wrong');
+                  }
+
+                  if (mounted) {
+                    bloc.add(AnswerSelectedEvent(
+                      answerIndex: question.shuffledAnswers.indexOf(answer),
+                      timeToAnswer: const Duration(seconds: 1),
+                    ));
+                  }
+                },
                 child: Text(answer, style: const TextStyle(fontSize: 16)),
               ),
             );
@@ -191,15 +213,36 @@ class _QuizPageState extends State<QuizPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Quiz Finished!'),
-          content: Text(
-            'You answered ${state.correctAnswers} out of ${state.totalQuestions} questions correctly.',
-            style: const TextStyle(fontSize: 18),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You answered ${state.correctAnswers} out of ${state.totalQuestions} questions correctly.',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Accuracy: ${state.accuracyPercentage.toStringAsFixed(1)}%',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '🏆 Points Earned: +${state.pointsEarned}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ],
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Go Home'),
               onPressed: () {
-                if (mounted) {
+                if (mounted && !_isNavigating) {
+                  _isNavigating = true;
                   Navigator.of(context).pop(); // Close dialog
                   Navigator.of(context).pop(); // Close quiz page
                 }

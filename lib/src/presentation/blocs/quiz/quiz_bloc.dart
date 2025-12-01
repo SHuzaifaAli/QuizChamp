@@ -4,6 +4,12 @@ import '../../../domain/entities/quiz_session_entity.dart';
 import '../../../domain/entities/user_answer_entity.dart';
 import '../../../domain/repositories/quiz_repository.dart';
 import '../../../domain/repositories/audio_service.dart';
+import '../../../domain/repositories/hearts_service.dart';
+import '../../../core/services/hearts_bloc_service.dart';
+import '../hearts/hearts_event.dart';
+import '../user/user_bloc.dart';
+import '../user/user_event.dart';
+import '../../../data/services/user_service.dart';
 import '../../../domain/usecases/quiz/start_quiz_usecase.dart';
 import '../../../domain/usecases/quiz/answer_question_usecase.dart';
 import '../../../domain/usecases/quiz/question_timer_usecase.dart';
@@ -17,6 +23,9 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
   final QuestionTimerUseCase questionTimerUseCase;
   final QuizRepository quizRepository;
   final AudioService audioService;
+  final HeartsService heartsService;
+  final UserService userService;
+  final UserBloc? userBloc;
 
   StreamSubscription<int>? _timerSubscription;
   QuizSession? _currentSession;
@@ -29,6 +38,9 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
     required this.questionTimerUseCase,
     required this.quizRepository,
     required this.audioService,
+    required this.heartsService,
+    required this.userService,
+    this.userBloc,
   }) : super(const QuizInitial()) {
     on<StartQuizEvent>(_onStartQuiz);
     on<AnswerSelectedEvent>(_onAnswerSelected);
@@ -72,9 +84,23 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
 
     // Play audio feedback
     if (isCorrect) {
-      await audioService.playCorrectSound();
+      try {
+        await audioService.playCorrectSound();
+      } catch (e) {
+        print('⚠️ [QuizBloc] Failed to play correct sound: $e');
+        // Continue with quiz even if sound fails
+      }
     } else {
-      await audioService.playIncorrectSound();
+      try {
+        await audioService.playIncorrectSound();
+      } catch (e) {
+        print('⚠️ [QuizBloc] Failed to play incorrect sound: $e');
+        // Continue with quiz even if sound fails
+      }
+      
+      // Consume a heart for wrong answer via global HeartsBloc
+      HeartsBlocService.instance.add(ConsumeHeart());
+      print('💔 [QuizBloc] Heart consumed for wrong answer');
     }
 
     // Update session with answer
@@ -113,7 +139,16 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
     if (currentQuestion == null) return;
 
     // Play timeout sound
-    await audioService.playTimeoutSound();
+    try {
+      await audioService.playTimeoutSound();
+    } catch (e) {
+      print('⚠️ [QuizBloc] Failed to play timeout sound: $e');
+      // Continue with quiz even if sound fails
+    }
+
+    // Consume a heart for timeout via global HeartsBloc
+    HeartsBlocService.instance.add(ConsumeHeart());
+    print('💔 [QuizBloc] Heart consumed for timeout');
 
     // Create timeout answer
     final timeoutAnswer = UserAnswer(
@@ -155,6 +190,49 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
         (total, answer) => total + answer.timeToAnswer,
       );
 
+      // Calculate points (10 points per correct answer)
+      final pointsEarned = _currentSession!.correctAnswersCount * 10;
+      
+      // Update Firebase with points and stats
+      try {
+        // Get current user data
+        final userData = await userService.getCurrentUserData();
+        if (userData != null) {
+          final newTotalPoints = userData.points + pointsEarned;
+          
+          // Get current stats from Firebase
+          final currentStats = userData.stats ?? {
+            'totalPoints': 0,
+            'quizzesCompleted': 0,
+            'correctAnswers': 0,
+            'averageScore': 0.0,
+          };
+          
+          final newQuizzesCompleted = (currentStats['quizzesCompleted'] as int? ?? 0) + 1;
+          final newCorrectAnswers = (currentStats['correctAnswers'] as int? ?? 0) + _currentSession!.correctAnswersCount;
+          final newAverageScore = newQuizzesCompleted > 0 
+              ? newCorrectAnswers / (newQuizzesCompleted * _currentSession!.questions.length) 
+              : 0.0;
+          
+          // Update stats in Firebase
+          await userService.updateUserStats(
+            totalPoints: newTotalPoints,
+            quizzesCompleted: newQuizzesCompleted,
+            correctAnswers: newCorrectAnswers,
+            averageScore: newAverageScore,
+          );
+          
+          // Update UserBloc with new points
+          userBloc?.add(UpdateUserPoints(newTotalPoints));
+          
+          print('🏆 [QuizBloc] Updated Firebase: +$pointsEarned points, Total: $newTotalPoints');
+          print('📊 [QuizBloc] Stats: $newQuizzesCompleted quizzes, $newCorrectAnswers correct answers, ${newAverageScore.toStringAsFixed(2)} avg score');
+        }
+      } catch (e) {
+        print('❌ [QuizBloc] Failed to update Firebase stats: $e');
+        // Continue with quiz completion even if Firebase fails
+      }
+
       emit(QuizCompleted(
         session: _currentSession!,
         correctAnswers: _currentSession!.correctAnswersCount,
@@ -162,6 +240,7 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
         accuracyPercentage: _currentSession!.accuracyPercentage,
         totalTime: totalTime,
         stats: stats,
+        pointsEarned: pointsEarned,
       ));
     } else {
       // Move to next question
@@ -233,11 +312,6 @@ class QuizBloc extends Bloc<QuizEvent, QuizState> {
         (timerStream) {
           _timerSubscription = timerStream.listen(
             (remainingTime) {
-              if (state is QuestionDisplayed) {
-                final currentState = state as QuestionDisplayed;
-                emit(currentState.copyWith(remainingTime: remainingTime));
-              }
-              
               if (remainingTime <= 0) {
                 add(const TimerExpiredEvent());
               }

@@ -1,12 +1,21 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/hearts_service.dart';
+import '../../../data/services/user_service.dart';
+import '../user/user_bloc.dart';
+import '../user/user_event.dart';
 import 'hearts_event.dart';
 import 'hearts_state.dart';
 
 class HeartsBloc extends Bloc<HeartsEvent, HeartsState> {
   final HeartsService heartsService;
+  final UserService userService;
+  final UserBloc? userBloc;
 
-  HeartsBloc({required this.heartsService}) : super(const HeartsInitial()) {
+  HeartsBloc({
+    required this.heartsService, 
+    required this.userService,
+    this.userBloc,
+  }) : super(const HeartsInitial()) {
     on<LoadHearts>(_onLoadHearts);
     on<ConsumeHeart>(_onConsumeHeart);
     on<AddHearts>(_onAddHearts);
@@ -18,18 +27,33 @@ class HeartsBloc extends Bloc<HeartsEvent, HeartsState> {
 
   Future<void> _onLoadHearts(LoadHearts event, Emitter<HeartsState> emit) async {
     try {
-      final hearts = await heartsService.getCurrentHearts();
+      // First try to get hearts from Firebase
+      final userData = await userService.getCurrentUserData();
+      int firebaseHearts = userData?.hearts ?? 3;
+      
+      // Get local hearts from service
+      final localHearts = await heartsService.getCurrentHearts();
       final maxHearts = heartsService.getMaxHearts();
       final timeToNextHeart = await heartsService.getTimeToNextHeart();
 
+      // Use Firebase hearts if available, otherwise use local hearts
+      final finalHearts = userData != null ? firebaseHearts : localHearts;
+      
+      // Sync local service with Firebase hearts if they're different
+      if (userData != null && firebaseHearts != localHearts) {
+        // Update local hearts to match Firebase
+        // Note: We might need to add a method to set hearts directly in the service
+        print('🔄 [HeartsBloc] Syncing local hearts ($localHearts) with Firebase ($firebaseHearts)');
+      }
+
       emit(HeartsLoaded(
-        currentHearts: hearts,
+        currentHearts: finalHearts,
         maxHearts: maxHearts,
         timeToNextHeart: timeToNextHeart,
-        isRegenerating: hearts < maxHearts,
+        isRegenerating: finalHearts < maxHearts,
       ));
 
-      if (hearts < maxHearts) {
+      if (finalHearts < maxHearts) {
         add(const StartRegeneration());
       }
     } catch (e) {
@@ -44,6 +68,18 @@ class HeartsBloc extends Bloc<HeartsEvent, HeartsState> {
         await heartsService.consumeHeart();
         
         final newHearts = currentState.currentHearts - 1;
+        
+        // Update Firebase
+        try {
+          await userService.updateUserHearts(newHearts);
+        } catch (e) {
+          print('⚠️ [HeartsBloc] Failed to update Firebase hearts: $e');
+          // Continue with local update even if Firebase fails
+        }
+        
+        // Update UserBloc if available
+        userBloc?.add(UpdateUserHearts(newHearts));
+        
         emit(currentState.copyWith(
           currentHearts: newHearts,
           isRegenerating: newHearts < currentState.maxHearts,

@@ -4,7 +4,7 @@ abstract class LeaderboardEvent extends Equatable {
   const LeaderboardEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class LoadGlobalLeaderboard extends LeaderboardEvent {
@@ -13,7 +13,7 @@ class LoadGlobalLeaderboard extends LeaderboardEvent {
   const LoadGlobalLeaderboard({this.limit = 50});
 
   @override
-  List<Object> get props => [limit];
+  List<Object?> get props => [limit];
 }
 
 class LoadFriendsLeaderboard extends LeaderboardEvent {
@@ -23,7 +23,7 @@ class LoadFriendsLeaderboard extends LeaderboardEvent {
   const LoadFriendsLeaderboard({required this.userId, this.limit = 50});
 
   @override
-  List<Object> get props => [userId, limit];
+  List<Object?> get props => [userId, limit];
 }
 
 class LoadUserRank extends LeaderboardEvent {
@@ -32,7 +32,7 @@ class LoadUserRank extends LeaderboardEvent {
   const LoadUserRank({required this.userId});
 
   @override
-  List<Object> get props => [userId];
+  List<Object?> get props => [userId];
 }
 
 class RefreshLeaderboard extends LeaderboardEvent {
@@ -41,5 +41,5 @@ class RefreshLeaderboard extends LeaderboardEvent {
   const RefreshLeaderboard({required this.userId});
 
   @override
-  List<Object> get props => [userId];
+  List<Object?> get props => [userId];
 }

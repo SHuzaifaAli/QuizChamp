@@ -1,11 +1,9 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:quiz_champ/src/core/error/failures.dart';
 import 'package:quiz_champ/src/domain/repositories/audio_service.dart';
 
 class AudioServiceImpl implements AudioService {
   final AudioPlayer _audioPlayer;
   bool _isMuted = false;
-  bool _soundsPreloaded = false;
 
   // Sound file paths
   static const String correctSoundPath = 'audio/correct.mp3';
@@ -19,30 +17,14 @@ class AudioServiceImpl implements AudioService {
   bool get isMuted => _isMuted;
 
   @override
-  Future<void> preloadSounds() async {
-    if (_soundsPreloaded) return;
-
-    try {
-      // Preload all sound effects
-      await _audioPlayer.setSource(AssetSource(correctSoundPath));
-      await _audioPlayer.setSource(AssetSource(incorrectSoundPath));
-      await _audioPlayer.setSource(AssetSource(timeoutSoundPath));
-      
-      _soundsPreloaded = true;
-    } catch (e) {
-      // Preloading failed, but we can still try to play sounds on demand
-      print('Failed to preload sounds: $e');
-    }
-  }
-
-  @override
   Future<void> playCorrectSound() async {
     if (_isMuted) return;
     
     try {
       await _playSound(correctSoundPath);
     } catch (e) {
-      throw AudioFailure(message: 'Failed to play correct sound: $e');
+      print('⚠️ [AudioService] Failed to play correct sound: $e');
+      // Don't throw - continue silently
     }
   }
 
@@ -53,7 +35,8 @@ class AudioServiceImpl implements AudioService {
     try {
       await _playSound(incorrectSoundPath);
     } catch (e) {
-      throw AudioFailure(message: 'Failed to play incorrect sound: $e');
+      print('⚠️ [AudioService] Failed to play incorrect sound: $e');
+      // Don't throw - continue silently
     }
   }
 
@@ -64,7 +47,8 @@ class AudioServiceImpl implements AudioService {
     try {
       await _playSound(timeoutSoundPath);
     } catch (e) {
-      throw AudioFailure(message: 'Failed to play timeout sound: $e');
+      print('⚠️ [AudioService] Failed to play timeout sound: $e');
+      // Don't throw - continue silently
     }
   }
 
@@ -91,8 +75,9 @@ class AudioServiceImpl implements AudioService {
       await Future.delayed(const Duration(seconds: 2));
       await _audioPlayer.stop();
     } catch (e) {
-      // Re-throw as AudioFailure for consistent error handling
-      throw AudioFailure(message: 'Audio playback failed: $e');
+      // Log the error but don't throw - let the quiz continue
+      print('⚠️ [AudioService] Audio playback failed: $e');
+      // Don't re-throw exception to avoid breaking quiz flow
     }
   }
 

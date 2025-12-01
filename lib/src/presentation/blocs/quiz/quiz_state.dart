@@ -125,6 +125,7 @@ class QuizCompleted extends QuizState {
   final double accuracyPercentage;
   final Duration totalTime;
   final Map<String, dynamic> stats;
+  final int pointsEarned;
 
   const QuizCompleted({
     required this.session,
@@ -133,6 +134,7 @@ class QuizCompleted extends QuizState {
     required this.accuracyPercentage,
     required this.totalTime,
     required this.stats,
+    this.pointsEarned = 0,
   });
 
   @override
@@ -143,6 +145,7 @@ class QuizCompleted extends QuizState {
         accuracyPercentage,
         totalTime,
         stats,
+        pointsEarned,
       ];
 }
 

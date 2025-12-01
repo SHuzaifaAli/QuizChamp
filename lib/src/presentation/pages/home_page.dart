@@ -36,9 +36,8 @@ class HomePage extends StatelessWidget {
               accountName: Text(user.displayName),
               accountEmail: Text(user.email),
               currentAccountPicture: CircleAvatar(
-                backgroundImage: user.photoUrl != null
-                    ? NetworkImage(user.photoUrl!)
-                    : null,
+                backgroundImage:
+                    user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
                 child: user.photoUrl == null ? const Icon(Icons.person) : null,
               ),
             ),
@@ -89,8 +88,10 @@ class HomePage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Welcome back, ${user.displayName}!', style: const TextStyle(fontSize: 24)),
-              Text('Hearts: ${user.hearts} | Points: ${user.points}', style: const TextStyle(fontSize: 18)),
+              Text('Welcome back, ${user.displayName}!',
+                  style: const TextStyle(fontSize: 24)),
+              Text('Hearts: ${user.hearts} | Points: ${user.points}',
+                  style: const TextStyle(fontSize: 18)),
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () => _startQuiz(context),
@@ -107,7 +108,8 @@ class HomePage extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (context) => sl<QuizBloc>()..add(const StartQuizEvent(questionCount: 10, difficulty: 'easy')),
+          create: (context) => sl<QuizBloc>()
+            ..add(const StartQuizEvent(questionCount: 10, difficulty: 'easy')),
           child: const QuizPage(),
         ),
       ),

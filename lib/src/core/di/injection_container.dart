@@ -1,6 +1,5 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -56,6 +55,7 @@ import 'package:quiz_champ/src/presentation/blocs/leaderboard/leaderboard_bloc.d
 import 'package:quiz_champ/src/presentation/blocs/friends/friends_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/sharing/sharing_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/hearts/hearts_bloc.dart';
+import 'package:quiz_champ/src/presentation/blocs/user/user_bloc.dart';
 import 'package:quiz_champ/src/data/repositories/hearts_service_impl.dart';
 import 'package:quiz_champ/src/domain/repositories/question_repository.dart';
 import 'package:quiz_champ/src/domain/repositories/quiz_repository.dart';
@@ -100,7 +100,6 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(
-      googleSignIn: sl(),
       firebaseAuth: sl(),
     ),
   );
@@ -121,6 +120,9 @@ Future<void> init() async {
       questionTimerUseCase: sl(),
       quizRepository: sl(),
       audioService: sl(),
+      heartsService: sl(),
+      userService: sl(),
+      userBloc: null, // Will be provided manually
     ),
   );
 
@@ -239,8 +241,10 @@ Future<void> init() async {
   );
 
   // Use cases
-  sl.registerLazySingleton(() => SendFriendRequestUseCase(friendsRepository: sl()));
-  sl.registerLazySingleton(() => AcceptFriendRequestUseCase(friendsRepository: sl()));
+  sl.registerLazySingleton(
+      () => SendFriendRequestUseCase(friendsRepository: sl()));
+  sl.registerLazySingleton(
+      () => AcceptFriendRequestUseCase(friendsRepository: sl()));
 
   // Blocs
   sl.registerFactory(
@@ -254,7 +258,14 @@ Future<void> init() async {
     () => SharingBloc(sharingService: sl()),
   );
   sl.registerFactory(
-    () => HeartsBloc(heartsService: sl()),
+    () => UserBloc(userService: sl()),
+  );
+  sl.registerFactory(
+    () => HeartsBloc(
+      heartsService: sl(),
+      userService: sl(),
+      userBloc: null, // Will be provided manually
+    ),
   );
 
   //! Legacy Quiz (to be removed)
@@ -270,8 +281,8 @@ Future<void> init() async {
   // Networking
   sl.registerLazySingleton(() => Dio());
 
-  // External
-  sl.registerLazySingleton(() => GoogleSignIn());
+  // External - Using Firebase Auth directly (no GoogleSignIn dependency)
+  // GoogleSignIn is removed - using Firebase Auth's built-in Google Sign-In
   sl.registerLazySingleton(() => FirebaseAuth.instance);
   sl.registerLazySingleton(() => FirebaseFirestore.instance);
   sl.registerLazySingleton(() => AudioPlayer());

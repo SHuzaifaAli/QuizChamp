@@ -47,10 +47,11 @@ dependencies {
   // Import the Firebase BoM
   implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
 
-
   // TODO: Add the dependencies for Firebase products you want to use
   // When using the BoM, don't specify versions in Firebase dependencies
   implementation("com.google.firebase:firebase-analytics")
+  implementation("com.google.firebase:firebase-auth")
+  implementation("com.google.android.gms:play-services-auth:21.3.0")
   implementation("com.google.android.gms:play-services-ads:24.8.0")
 
 

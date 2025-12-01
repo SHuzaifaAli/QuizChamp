@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quiz_champ/src/presentation/blocs/auth/auth_bloc.dart';
-import 'package:quiz_champ/src/presentation/pages/home_page.dart';
+
+import 'home_page.dart';
 
 class SignInPage extends StatelessWidget {
   const SignInPage({super.key});
@@ -37,12 +38,14 @@ class SignInPage extends StatelessWidget {
                 else
                   ElevatedButton.icon(
                     onPressed: () {
+                      print("🔥 [SignInPage] Sign-in button pressed!");
                       context.read<AuthBloc>().add(AuthSignInRequested());
                     },
                     icon: const Icon(Icons.login),
                     label: const Text('Sign in with Google'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 15),
                       textStyle: const TextStyle(fontSize: 18),
                     ),
                   ),

@@ -26,7 +26,7 @@ dependencies:
   hive_flutter: ^1.1.0
 
   # Auth
-  google_sign_in: ^6.1.5
+  # google_sign_in: ^6.1.5  # REMOVED - Using Firebase Auth instead
 
   # Utility
   equatable: ^2.0.5
@@ -43,11 +43,11 @@ dependencies:
   qr_flutter: ^4.1.0
   
   # Firebase (for backend/notifications/analytics)
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  firebase_messaging: ^14.7.10
-  cloud_firestore: ^4.13.3
-  firebase_analytics: ^10.7.3
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  firebase_messaging: ^16.0.4
+  cloud_firestore: ^6.1.0
+  firebase_analytics: ^12.0.4
 
   # Monetization (placeholders for native setup)
   google_mobile_ads: ^6.0.0
